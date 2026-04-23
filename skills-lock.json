@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "skills": {
+    "PRD Mastery: Context-Aware, Expert-Driven, and Token-Efficient Refinement": {
+      "source": "gocallum/nextjs16-agent-skills",
+      "sourceType": "github",
+      "computedHash": "3655954e2c35925b94e842c8196508a178711304a06b65acd140b0b4b6d6fbfb"
+    },
+    "ai-sdk-6-skills": {
+      "source": "gocallum/nextjs16-agent-skills",
+      "sourceType": "github",
+      "computedHash": "fdc18d569fdb437713fba857155dde08fa913d062acb9f33d91210ef08e833a0"
+    },
+    "authjs-skills": {
+      "source": "gocallum/nextjs16-agent-skills",
+      "sourceType": "github",
+      "computedHash": "a9e50317bfff481c46c9b7199bbb952c9cd776dc02767e1c0f22232452bb0341"
+    },
+    "clerk-nextjs-skills": {
+      "source": "gocallum/nextjs16-agent-skills",
+      "sourceType": "github",
+      "computedHash": "83333fe1e8dfe48234ab15f455b7d01b368204accfd8a329a795c7c4b710accc"
+    },
+    "electron": {
+      "source": "hairyf/skills",
+      "sourceType": "github",
+      "computedHash": "0c65021bf09ee0704badd05bf70c2fad9e800f0e6a439b96f7d5264923d21f0f"
+    },
+    "mysql": {
+      "source": "pluginagentmarketplace/custom-plugin-sql",
+      "sourceType": "github",
+      "computedHash": "3e205d79da34e6d79eac92d1adfc0ffb269da4181f720a1837d4ec347ee726d7"
+    },
+    "nextjs16-skills": {
+      "source": "gocallum/nextjs16-agent-skills",
+      "sourceType": "github",
+      "computedHash": "80fe177f4f80c22606a16952a65e06f73c87d40f5d082d0f9cec4725f103dd41"
+    },
+    "nodejs-express-server": {
+      "source": "aj-geddes/useful-ai-prompts",
+      "sourceType": "github",
+      "computedHash": "8a7fe50351131f99b7bc7750bb4be6e7cbd7919b3b346c8fc7f857fb1ecad059"
+    },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "computedHash": "642a177bee320618caa49f5106cadb4e7594c606e867f61ba7b56d19cf745cd5"
+    }
+  }
+}
