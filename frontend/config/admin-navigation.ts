@@ -38,7 +38,7 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Dashboard",
-        url: "/admin",
+        url: "/",
         icon: LayoutDashboard,
       },
     ],
@@ -49,24 +49,23 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Utilisateurs",
-        url: "/admin/utilisateurs",
+        url: "/utilisateurs",
         icon: Users,
       },
       {
         title: "Produits",
-        url: "/admin/produits",
+        url: "/produits",
         icon: Package,
-        comingSoon: true,
       },
       {
         title: "Stock",
-        url: "/admin/stock",
+        url: "/stock",
         icon: Box,
         comingSoon: true,
       },
       {
         title: "Ventes",
-        url: "/admin/ventes",
+        url: "/ventes",
         icon: ShoppingCart,
         comingSoon: true,
       },
@@ -78,12 +77,12 @@ export const sidebarItems: NavGroup[] = [
     items: [
       {
         title: "Rapports",
-        url: "/admin/rapports",
+        url: "/rapports",
         icon: BarChart3,
         comingSoon: true,
         subItems: [
-          { title: "Journalier", url: "/admin/rapports/journalier", comingSoon: true },
-          { title: "Mensuel", url: "/admin/rapports/mensuel", comingSoon: true },
+          { title: "Journalier", url: "/rapports/journalier", comingSoon: true },
+          { title: "Mensuel", url: "/rapports/mensuel", comingSoon: true },
         ],
       },
     ],

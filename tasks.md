@@ -128,7 +128,7 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ---
 
-#### TASK-008 ⏳ Page Gestion Utilisateurs Frontend
+#### TASK-008 ✅ Page Gestion Utilisateurs Frontend
 **Priorité** : Moyenne  
 **Durée** : 3h  
 **Description** :
@@ -141,7 +141,7 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ### 📦 SEMAINE 3 : GESTION PRODUITS
 
-#### TASK-009 ⏳ Service Products Backend
+#### TASK-009 ✅ Service Products Backend
 **Priorité** : Critique  
 **Durée** : 4h  
 **Description** :
@@ -158,7 +158,7 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ---
 
-#### TASK-010 ⏳ Page Liste Produits Frontend
+#### TASK-010 ✅ Page Liste Produits Frontend
 **Priorité** : Critique  
 **Durée** : 3h  
 **Description** :
@@ -169,7 +169,7 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ---
 
-#### TASK-011 ⏳ Formulaire Ajout/Modification Produit
+#### TASK-011 ✅ Formulaire Ajout/Modification Produit
 **Priorité** : Critique  
 **Durée** : 4h  
 **Description** :
@@ -181,13 +181,34 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ---
 
-#### TASK-012 ⏳ Service Categories & Brands Backend
+### TASK-012 ⏳ Service Categories & Brands Backend + Modals Frontend
+
 **Priorité** : Moyenne  
-**Durée** : 1.5h  
+**Durée** : 2h  
+
 **Description** :
-- Créer `services/categories.service.ts` : CRUD basique
-- Créer `services/brands.service.ts` : CRUD basique
-- Routes associées
+Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formulaire produit.
+
+**Backend :**
+1. services/categories.service.ts : create, getAll, update, delete
+2. services/brands.service.ts : idem
+3. routes/categories.routes.ts : GET /api/categories, POST /api/categories
+4. routes/brands.routes.ts : idem
+5. Mise à jour server.ts
+
+**Frontend :**
+1. components/AddCategoryModal.tsx : Modal d'ajout catégorie
+2. components/AddBrandModal.tsx : Modal d'ajout marque
+3. Intégration dans formulaire produit (bouton ⊕ à côté des selects)
+
+**Contraintes :**
+- Validation Joi backend (name : string, min 2, unique)
+- Design modal identique à l'image de référence
+- Auto-refresh liste après création
+- Auto-sélection nouvel élément créé
+
+**Output :**
+5 fichiers backend + 2 composants modals + modifications formulaire produit
 
 ---
 

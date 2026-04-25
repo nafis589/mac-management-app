@@ -113,17 +113,13 @@ const createUserSchema = z.object({
     .min(8, "Le mot de passe doit contenir au moins 8 caractères")
     .regex(/[A-Z]/, "Le mot de passe doit contenir au moins 1 majuscule")
     .regex(/\d/, "Le mot de passe doit contenir au moins 1 chiffre"),
-  role: z.enum(["ADMIN", "CASHIER"], {
-    required_error: "Veuillez sélectionner un rôle",
-  }),
+  role: z.enum(["ADMIN", "CASHIER"]),
 });
 
 const updateUserSchema = z.object({
   first_name: z.string().min(2, "Le prénom doit contenir au moins 2 caractères"),
   last_name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-  role: z.enum(["ADMIN", "CASHIER"], {
-    required_error: "Veuillez sélectionner un rôle",
-  }),
+  role: z.enum(["ADMIN", "CASHIER"]),
 });
 
 const resetPasswordSchema = z.object({
@@ -254,9 +250,8 @@ function useUsersColumns(
               }
             >
               <span
-                className={`mr-1 inline-block size-1.5 rounded-full ${
-                  isActive ? "bg-emerald-500" : "bg-red-500"
-                }`}
+                className={`mr-1 inline-block size-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-red-500"
+                  }`}
               />
               {isActive ? "Actif" : "Inactif"}
             </Badge>
@@ -1011,7 +1006,7 @@ function UsersTable({
       </div>
 
       {/* Table - exact same pattern as default-V1 */}
-      <div className="overflow-hidden rounded-lg border bg-card">
+      <div className="overflow-hidden rounded-lg border bg-card shadow-none">
         <Table>
           <TableHeader className="bg-muted/15">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -1025,9 +1020,9 @@ function UsersTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -1310,7 +1305,7 @@ export default function UtilisateursPage() {
       </div>
 
       {/* Table Section Wrapped in Card */}
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
           <CardTitle className="leading-none">{totalUsers} Utilisateurs</CardTitle>
           <CardDescription>Enregistrements des utilisateurs avec rôles, statuts et date d'inscription.</CardDescription>
