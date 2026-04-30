@@ -30,6 +30,7 @@ import {
   TrendingUp,
   UserRound,
   UsersRound,
+  MoreHorizontal,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -50,8 +51,11 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -267,36 +271,30 @@ function useUsersColumns(
       },
       {
         id: "actions",
-        header: "Actions",
+        header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => (
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => onEdit(row.original)}
-              aria-label={`Modifier ${row.original.first_name}`}
-            >
-              <Edit className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => onToggleStatus(row.original)}
-              aria-label={`Basculer le statut de ${row.original.first_name}`}
-            >
-              <Power className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              onClick={() => onResetPassword(row.original)}
-              aria-label={`Reset le mot de passe de ${row.original.first_name}`}
-            >
-              <KeyRound className="size-4" />
-            </Button>
+          <div className="flex justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Ouvrir le menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => onEdit(row.original)}>
+                  Modifier les informations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onToggleStatus(row.original)}>
+                  {row.original.status === "ACTIVE" ? "Désactiver le compte" : "Activer le compte"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onResetPassword(row.original)}>
+                  Réinitialiser le mot de passe
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ),
       },

@@ -61,9 +61,38 @@ export const productsService = {
 
   async getAll(filters: any = {}) {
     try {
-      let query = 'SELECT * FROM products WHERE 1=1';
+      // JOIN avec categories et brands pour renvoyer les noms (utilisés dans la liste frontend)
+      let query = `
+        SELECT
+          p.*,
+          c.name AS category_name,
+          b.name AS brand_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN brands   b ON p.brand_id   = b.id
+        WHERE 1=1
+      `;
       const params: any[] = [];
-      
+
+      // Filtre recherche rapide
+      if (filters.search) {
+        query += ' AND (p.name LIKE ? OR p.reference LIKE ? OR p.description LIKE ?)';
+        const like = `%${filters.search}%`;
+        params.push(like, like, like);
+      }
+
+      // Filtres optionnels catégorie / marque
+      if (filters.category_id) {
+        query += ' AND p.category_id = ?';
+        params.push(filters.category_id);
+      }
+      if (filters.brand_id) {
+        query += ' AND p.brand_id = ?';
+        params.push(filters.brand_id);
+      }
+
+      query += ' ORDER BY p.created_at DESC';
+
       const [rows] = await pool.query(query, params);
       return rows;
     } catch (error) {

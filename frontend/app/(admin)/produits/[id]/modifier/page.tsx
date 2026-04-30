@@ -6,9 +6,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter, useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Upload, X, ArrowLeft } from "lucide-react";
+import { Upload, X, ArrowLeft, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { AddCategoryModal } from "@/components/AddCategoryModal";
+import { AddBrandModal } from "@/components/AddBrandModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const productSchema = z.object({
   name: z.string().min(2, "Min 2 caractères").max(100),
@@ -20,13 +33,14 @@ const productSchema = z.object({
   size: z.string().optional(),
   color: z.string().optional(),
   condition: z.enum(["EXCELLENT", "VERY_GOOD", "GOOD"]),
-  sale_price: z.number().positive("Prix de vente > 0"),
-  purchase_price: z.number().positive("Prix d'achat > 0"),
+  // min(0) pour ne pas bloquer le reset initial avec des valeurs non encore saisies
+  sale_price: z.number().min(0, "Prix de vente requis"),
+  purchase_price: z.number().min(0, "Prix d'achat requis"),
   quantity: z.number().min(0),
   min_stock: z.number().min(0).default(2),
   in_stock: z.boolean().default(true),
   charge_tax: z.boolean().default(false),
-}).refine(data => data.sale_price > data.purchase_price, {
+}).refine(data => data.sale_price === 0 || data.purchase_price === 0 || data.sale_price > data.purchase_price, {
   message: "Prix de vente doit être > prix d'achat",
   path: ["sale_price"]
 });
@@ -40,12 +54,20 @@ export default function ModifierProduitPage() {
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
-  
+
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  
+
+  // Photos déjà enregistrées sur le serveur (chemins relatifs type /uploads/products/...)
+  const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
+
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+
+  // Contrôle des modaux d'ajout inline
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showAddBrand, setShowAddBrand] = useState(false);
+  const [photoToDelete, setPhotoToDelete] = useState<number | null>(null);
 
   const {
     register,
@@ -72,10 +94,10 @@ export default function ModifierProduitPage() {
       fetch("http://localhost:4000/api/categories").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] })),
       fetch("http://localhost:4000/api/brands").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] }))
     ]).then(([productData, catData, brandData]) => {
-      
+
       if (catData?.data) setCategories(catData.data);
       if (brandData?.data) setBrands(brandData.data);
-      
+
       if (productData?.data) {
         const prod = productData.data;
         reset({
@@ -101,11 +123,9 @@ export default function ModifierProduitPage() {
           try {
             const parsedPhotos = typeof prod.photos === "string" ? JSON.parse(prod.photos) : prod.photos;
             if (Array.isArray(parsedPhotos)) {
-              setPreviews(parsedPhotos);
-              // Note: Existing photos are kept as preview strings. 
-              // Sending files + existing requires backend sync logic, but we follow the design constraints for now.
+              setExistingPhotos(parsedPhotos);
             }
-          } catch(e) {
+          } catch (e) {
             console.error("Error parsing photos JSON", e);
           }
         }
@@ -118,18 +138,56 @@ export default function ModifierProduitPage() {
     });
   }, [id, reset]);
 
+  /**
+   * Appelé après création d'une catégorie depuis la modal.
+   */
+  const handleCategoryAdded = (newCategory: { id: string; name: string }) => {
+    setCategories((prev) => [...prev, newCategory]);
+    setValue("category_id", String(newCategory.id));
+  };
+
+  /**
+   * Appelé après création d'une marque depuis la modal.
+   */
+  const handleBrandAdded = (newBrand: { id: string; name: string }) => {
+    setBrands((prev) => [...prev, newBrand]);
+    setValue("brand_id", String(newBrand.id));
+  };
+
   const inStock = watch("in_stock");
   const chargeTax = watch("charge_tax");
 
+  const confirmDeleteExistingPhoto = async () => {
+    if (photoToDelete === null) return;
+    const index = photoToDelete;
+    
+    try {
+      const res = await fetch(`http://localhost:4000/api/products/${id}/photos/${index}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erreur suppression');
+      
+      setExistingPhotos(data.data.photos);
+      toast.success('Image supprimée');
+    } catch (error: any) {
+      toast.error(error.message || 'Erreur lors de la suppression');
+      console.error(error);
+    } finally {
+      setPhotoToDelete(null);
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (previews.length + files.length > 5) {
-      toast.error("Maximum 5 photos");
+    if (existingPhotos.length + previews.length + files.length > 5) {
+      toast.error("Maximum 5 photos au total");
       return;
     }
-    
+
     setPhotos([...photos, ...files]);
-    
+
     files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -151,8 +209,8 @@ export default function ModifierProduitPage() {
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-    if (previews.length + files.length > 5) {
-      toast.error("Maximum 5 photos");
+    if (existingPhotos.length + previews.length + files.length > 5) {
+      toast.error("Maximum 5 photos au total");
       return;
     }
     setPhotos([...photos, ...files]);
@@ -176,22 +234,28 @@ export default function ModifierProduitPage() {
       });
       formData.append('status', isDraft ? 'draft' : 'published');
 
+      // Nouvelles photos jointes dans le même appel PATCH
       photos.forEach(photo => {
         formData.append("photos", photo);
       });
-      
+
       const response = await fetch(`http://localhost:4000/api/products/${id}`, {
         method: "PATCH",
         body: formData
       });
-      
-      if (!response.ok) throw new Error("Erreur modification");
-      
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result?.error || "Erreur lors de la modification");
+        return;
+      }
+
       toast.success(isDraft ? "Brouillon mis à jour !" : "Produit modifié avec succès !");
       router.push("/produits");
-      
+
     } catch (error) {
-      toast.error("Erreur lors de la modification");
+      toast.error("Impossible de contacter le serveur");
       console.error(error);
     } finally {
       setLoading(false);
@@ -225,10 +289,10 @@ export default function ModifierProduitPage() {
           <Link href="/produits" className="p-2 border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-gray-500 transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Edit Product</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Edition produit</h1>
         </div>
         <div className="flex items-center gap-3">
-          <button 
+          <button
             type="button"
             onClick={() => router.push("/produits")}
             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
@@ -236,7 +300,7 @@ export default function ModifierProduitPage() {
           >
             Discard
           </button>
-          <button 
+          <button
             type="button"
             className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm"
             onClick={handleSubmitDraft}
@@ -244,7 +308,7 @@ export default function ModifierProduitPage() {
           >
             Save draft
           </button>
-          <button 
+          <button
             type="button"
             className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium hover:bg-rose-600 shadow-sm transition-colors"
             onClick={handleSubmitPublish}
@@ -258,10 +322,10 @@ export default function ModifierProduitPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* COLONNE GAUCHE */}
         <div className="lg:col-span-2 space-y-6">
-          
+
           <div className={sectionClass}>
             <h2 className="text-base font-semibold text-gray-900 mb-4">Product Details</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className={labelClass}>Name</label>
@@ -283,9 +347,9 @@ export default function ModifierProduitPage() {
 
               <div>
                 <label className={labelClass}>Description <span className="text-gray-400 font-normal">(Optional)</span></label>
-                <textarea 
-                  {...register("description")} 
-                  className={`${inputClass} min-h-[120px] resize-y`} 
+                <textarea
+                  {...register("description")}
+                  className={`${inputClass} min-h-[120px] resize-y`}
                   placeholder="Details about the product..."
                 />
               </div>
@@ -297,7 +361,7 @@ export default function ModifierProduitPage() {
               <h2 className="text-base font-semibold text-gray-900">Product Images</h2>
               <span className="text-sm text-blue-600 cursor-pointer hover:underline">Add media from URL</span>
             </div>
-            
+
             <div
               className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-gray-400 transition-colors cursor-pointer"
               onDrop={handleDrop}
@@ -317,27 +381,50 @@ export default function ModifierProduitPage() {
               />
             </div>
 
-            {previews.length > 0 && (
-              <div className="grid grid-cols-5 gap-4 mt-4">
-                {previews.map((preview, i) => (
-                  <div key={i} className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                    <img src={preview} alt="preview" className="w-full h-24 object-cover" />
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
-                      className="absolute top-1 right-1 bg-white text-gray-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+            {/* Galerie de photos (existantes + nouvelles) */}
+            {(existingPhotos.length > 0 || previews.length > 0) && (
+              <div className="mt-4">
+                <p className="text-sm font-medium mb-2">Photos ({existingPhotos.length + previews.length}/5)</p>
+                <div className="grid grid-cols-5 gap-4">
+                  {existingPhotos.map((photo, index) => (
+                    <div key={`existing-${index}`} className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                      <img
+                        src={`http://localhost:4000${photo}`}
+                        alt={`Photo ${index + 1}`}
+                        className="w-full h-24 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder-product.png';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setPhotoToDelete(index); }}
+                        className="absolute top-1 right-1 bg-white text-gray-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {previews.map((preview, i) => (
+                    <div key={`new-${i}`} className="relative group rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                      <img src={preview} alt="preview" className="w-full h-24 object-cover" />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removePhoto(i); }}
+                        className="absolute top-1 right-1 bg-white text-gray-600 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white shadow-sm"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
 
           <div className={sectionClass}>
             <h2 className="text-base font-semibold text-gray-900 mb-4">Caractéristiques</h2>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Taille <span className="text-gray-400 font-normal">(Optional)</span></label>
@@ -368,37 +455,52 @@ export default function ModifierProduitPage() {
                 )}
               />
             </div>
-            
+
             <div className="mt-4">
               <label className={labelClass}>Marque</label>
-              <Controller
-                name="brand_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                    <SelectTrigger className="w-full bg-white h-[42px] border-gray-300 shadow-none">
-                      <SelectValue placeholder="Select brand" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map(b => (
-                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              {/* Ligne : select + bouton ⊕ */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Controller
+                    name="brand_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger className="w-full bg-white h-10 rounded-lg border-gray-300 shadow-none">
+                          <SelectValue placeholder="Select brand" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {brands.map(b => (
+                            <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowAddBrand(true)}
+                  className="h-10 w-10 rounded-xl shrink-0 border-gray-300 hover:bg-gray-50"
+                  title="Ajouter une marque"
+                >
+                  <PlusCircle className="h-5 w-5 text-gray-700" strokeWidth={1.5} />
+                </Button>
+              </div>
               {errors.brand_id && <p className="text-red-500 text-xs mt-1">{errors.brand_id.message}</p>}
             </div>
           </div>
-          
+
         </div>
 
         {/* COLONNE DROITE */}
         <div className="lg:col-span-1 space-y-6">
-          
+
           <div className={sectionClass}>
             <h2 className="text-base font-semibold text-gray-900 mb-4">Pricing</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className={labelClass}>Prix de vente (FCFA)</label>
@@ -411,11 +513,11 @@ export default function ModifierProduitPage() {
                 <input type="number" {...register("purchase_price", { valueAsNumber: true })} className={inputClass} placeholder="0" />
                 {errors.purchase_price && <p className="text-red-500 text-xs mt-1">{errors.purchase_price.message}</p>}
               </div>
-              
+
               <div className="flex items-center gap-2 pt-2">
-                <input 
-                  type="checkbox" 
-                  id="charge_tax" 
+                <input
+                  type="checkbox"
+                  id="charge_tax"
                   className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   checked={chargeTax}
                   onChange={(e) => setValue("charge_tax", e.target.checked)}
@@ -430,8 +532,8 @@ export default function ModifierProduitPage() {
               <h2 className="text-base font-semibold text-gray-900">Stock</h2>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700">In stock</span>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setValue("in_stock", !inStock)}
                   className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors ${inStock ? 'bg-blue-600' : 'bg-gray-200'}`}
                 >
@@ -439,7 +541,7 @@ export default function ModifierProduitPage() {
                 </button>
               </div>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className={labelClass}>Quantité</label>
@@ -456,31 +558,74 @@ export default function ModifierProduitPage() {
 
           <div className={sectionClass}>
             <h2 className="text-base font-semibold text-gray-900 mb-4">Categories</h2>
-            
+
             <div>
               <label className={labelClass}>Catégorie</label>
-              <Controller
-                name="category_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                    <SelectTrigger className="w-full bg-white h-[42px] border-gray-300 shadow-none">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              {/* Ligne : select + bouton ⊕ */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Controller
+                    name="category_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <SelectTrigger className="w-full bg-white h-10 rounded-lg border-gray-300 shadow-none">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => (
+                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowAddCategory(true)}
+                  className="h-10 w-10 rounded-xl shrink-0 border-gray-300 hover:bg-gray-50"
+                  title="Ajouter une catégorie"
+                >
+                  <PlusCircle className="h-5 w-5 text-gray-700" strokeWidth={1.5} />
+                </Button>
+              </div>
               {errors.category_id && <p className="text-red-500 text-xs mt-1">{errors.category_id.message}</p>}
             </div>
           </div>
-          
+
         </div>
       </div>
+
+      <AddCategoryModal
+        open={showAddCategory}
+        onOpenChange={setShowAddCategory}
+        onSuccess={handleCategoryAdded}
+      />
+      <AddBrandModal
+        open={showAddBrand}
+        onOpenChange={setShowAddBrand}
+        onSuccess={handleBrandAdded}
+      />
+
+      <AlertDialog open={photoToDelete !== null} onOpenChange={(open) => !open && setPhotoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer cette image ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer cette image ? Cette action est irréversible.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteExistingPhoto} className="bg-red-500 text-white hover:bg-red-600">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

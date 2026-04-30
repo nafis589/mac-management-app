@@ -181,7 +181,7 @@ mysql -u root -p fripperie_luxe < database/seeds/001_initial_data.sql
 
 ---
 
-### TASK-012 ⏳ Service Categories & Brands Backend + Modals Frontend
+### TASK-012 ✅ Service Categories & Brands Backend + Modals Frontend
 
 **Priorité** : Moyenne  
 **Durée** : 2h  
@@ -214,7 +214,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ### 📊 SEMAINE 4 : STOCK & VENTES
 
-#### TASK-013 ⏳ Service Stock Backend
+#### TASK-013 ✅ Service Stock Backend
 **Priorité** : Haute  
 **Durée** : 3h  
 **Description** :

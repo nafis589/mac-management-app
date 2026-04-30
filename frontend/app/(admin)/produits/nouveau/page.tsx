@@ -6,9 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Upload, X, ArrowLeft } from "lucide-react";
+import { Upload, X, ArrowLeft, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { AddCategoryModal } from "@/components/AddCategoryModal";
+import { AddBrandModal } from "@/components/AddBrandModal";
 
 const productSchema = z.object({
   name: z.string().min(2, "Min 2 caractères").max(100),
@@ -38,9 +41,14 @@ export default function NouveauProduitPage() {
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  
+
+  // Listes catégories / marques chargées depuis l'API
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+
+  // Contrôle des modaux d'ajout inline
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showAddBrand, setShowAddBrand] = useState(false);
 
   useEffect(() => {
     // Load categories and brands and fail safely avoiding HTML responses
@@ -113,6 +121,24 @@ export default function NouveauProduitPage() {
     });
   };
 
+  /**
+   * Appelé après création d'une catégorie depuis la modal.
+   * Ajoute la catégorie à la liste et la sélectionne automatiquement.
+   */
+  const handleCategoryAdded = (newCategory: { id: string; name: string }) => {
+    setCategories((prev) => [...prev, newCategory]);
+    setValue("category_id", String(newCategory.id));
+  };
+
+  /**
+   * Appelé après création d'une marque depuis la modal.
+   * Ajoute la marque à la liste et la sélectionne automatiquement.
+   */
+  const handleBrandAdded = (newBrand: { id: string; name: string }) => {
+    setBrands((prev) => [...prev, newBrand]);
+    setValue("brand_id", String(newBrand.id));
+  };
+
   const onSubmit = async (data: ProductFormValues, isDraft: boolean = false) => {
     setLoading(true);
     try {
@@ -124,22 +150,28 @@ export default function NouveauProduitPage() {
       });
       formData.append('status', isDraft ? 'draft' : 'published');
 
+      // Photos incluses dans le même appel (multer les parse côté backend)
       photos.forEach(photo => {
         formData.append("photos", photo);
       });
-      
+
       const response = await fetch("http://localhost:4000/api/products", {
         method: "POST",
         body: formData
       });
-      
-      if (!response.ok) throw new Error("Erreur création");
-      
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result?.error || "Erreur lors de la création");
+        return;
+      }
+
       toast.success(isDraft ? "Brouillon sauvegardé !" : "Produit créé avec succès !");
       router.push("/produits");
-      
+
     } catch (error) {
-      toast.error("Erreur lors de la création");
+      toast.error("Impossible de contacter le serveur");
       console.error(error);
     } finally {
       setLoading(false);
@@ -292,7 +324,7 @@ export default function NouveauProduitPage() {
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger className="w-full bg-white h-[42px] border-gray-300 shadow-none">
+                    <SelectTrigger className="w-full bg-white h-10 rounded-lg border-gray-300 shadow-none">
                       <SelectValue placeholder="État du produit" />
                     </SelectTrigger>
                     <SelectContent>
@@ -307,22 +339,37 @@ export default function NouveauProduitPage() {
             
             <div className="mt-4">
               <label className={labelClass}>Marque</label>
-              <Controller
-                name="brand_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger className="w-full bg-white h-[42px] border-gray-300 shadow-none">
-                      <SelectValue placeholder="Select brand" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {brands.map(b => (
-                        <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              {/* Ligne : select + bouton ⊕ */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Controller
+                    name="brand_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="w-full bg-white h-10 rounded-lg border-gray-300 shadow-none">
+                          <SelectValue placeholder="Select brand" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {brands.map(b => (
+                            <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowAddBrand(true)}
+                  className="h-10 w-10 rounded-xl shrink-0 border-gray-300 hover:bg-gray-50"
+                  title="Ajouter une marque"
+                >
+                  <PlusCircle className="h-5 w-5 text-gray-700" strokeWidth={1.5} />
+                </Button>
+              </div>
               {errors.brand_id && <p className="text-red-500 text-xs mt-1">{errors.brand_id.message}</p>}
             </div>
           </div>
@@ -392,31 +439,58 @@ export default function NouveauProduitPage() {
 
           <div className={sectionClass}>
             <h2 className="text-base font-semibold text-gray-900 mb-4">Categories</h2>
-            
+
             <div>
               <label className={labelClass}>Catégorie</label>
-              <Controller
-                name="category_id"
-                control={control}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger className="w-full bg-white h-[42px] border-gray-300 shadow-none">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => (
-                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+              {/* Ligne : select + bouton ⊕ */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Controller
+                    name="category_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger className="w-full bg-white h-10 rounded-lg border-gray-300 shadow-none">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(c => (
+                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  onClick={() => setShowAddCategory(true)}
+                  className="h-10 w-10 rounded-xl shrink-0 border-gray-300 hover:bg-gray-50"
+                  title="Ajouter une catégorie"
+                >
+                  <PlusCircle className="h-5 w-5 text-gray-700" strokeWidth={1.5} />
+                </Button>
+              </div>
               {errors.category_id && <p className="text-red-500 text-xs mt-1">{errors.category_id.message}</p>}
             </div>
           </div>
           
         </div>
       </div>
+
+      {/* ─── Modaux d'ajout inline ─────────────────────────────────── */}
+      <AddCategoryModal
+        open={showAddCategory}
+        onOpenChange={setShowAddCategory}
+        onSuccess={handleCategoryAdded}
+      />
+      <AddBrandModal
+        open={showAddBrand}
+        onOpenChange={setShowAddBrand}
+        onSuccess={handleBrandAdded}
+      />
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client"
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 
 import {
   type ColumnDef,
@@ -97,21 +96,36 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
         accessorKey: "photos",
         header: "Photo",
         cell: ({ row }) => {
-          let photoUrl = null
+          let photoUrl: string | null = null
           if (row.original.photos) {
             try {
-              const parsed = JSON.parse(row.original.photos)
+              const parsed = typeof row.original.photos === "string" ? JSON.parse(row.original.photos) : row.original.photos;
               if (Array.isArray(parsed) && parsed.length > 0) {
-                photoUrl = parsed[0]
+                const first = parsed[0]
+                if (typeof first === 'string' && first.trim() !== '') {
+                  photoUrl = first.startsWith('http') ? first : `http://localhost:4000${first}`
+                }
+              } else if (typeof parsed === 'string' && parsed.trim() !== '') {
+                const raw = parsed.trim()
+                photoUrl = raw.startsWith('http') ? raw : `http://localhost:4000${raw}`
               }
             } catch (e) {
-              photoUrl = row.original.photos
+              const raw = String(row.original.photos).trim()
+              if (raw !== '') {
+                  photoUrl = raw.startsWith('http') ? raw : `http://localhost:4000${raw}`
+              }
             }
           }
           return (
             <div className="relative h-12 w-12 overflow-hidden rounded-md border bg-muted flex items-center justify-center">
               {photoUrl ? (
-                <Image src={photoUrl} alt={row.original.name} fill className="object-cover" />
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={photoUrl}
+                  alt={row.original.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/placeholder-product.png' }}
+                />
               ) : (
                 <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
               )}
@@ -147,10 +161,7 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
         header: "Prix",
         cell: ({ row }) => (
           <div className="font-medium tabular-nums">
-            {Number(row.original.sale_price).toLocaleString("fr-FR", {
-              style: "currency",
-              currency: "EUR",
-            })}
+            {Number(row.original.sale_price).toLocaleString("fr-FR")} FCFA
           </div>
         ),
         filterFn: (row, id, value) => {
@@ -193,10 +204,10 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/produits/${row.original.id}`}>Voir détails</Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href={`/produits/${row.original.id}/modifier`}>Modifier ce produit</Link>
                 </DropdownMenuItem>
