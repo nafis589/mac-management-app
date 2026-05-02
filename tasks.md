@@ -227,7 +227,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-014 ⏳ Page Dashboard Stock Frontend
+#### TASK-014 ✅ Page Dashboard Stock Frontend
 **Priorité** : Haute  
 **Durée** : 3h  
 **Description** :

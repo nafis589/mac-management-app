@@ -205,7 +205,7 @@ function useUsersColumns(
         header: "Nom",
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md border bg-muted">
+            <span className="flex size-8 items-center justify-center rounded-xl border bg-muted">
               <UserRound className="size-4 text-muted-foreground" />
             </span>
             <span className="truncate font-medium text-sm">{row.original.last_name}</span>

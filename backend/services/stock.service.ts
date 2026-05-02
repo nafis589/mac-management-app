@@ -40,7 +40,7 @@ export const stockService = {
   async getMovements(filters: any = {}) {
     try {
       let query = `
-        SELECT sm.*, p.name as product_name, p.reference as product_reference, u.username as user_name
+        SELECT sm.*, sm.movement_type as type, p.name as product_name, p.reference as product_reference, u.username as user_name
         FROM stock_movements sm
         LEFT JOIN products p ON sm.product_id = p.id
         LEFT JOIN users u ON sm.user_id = u.id
@@ -57,7 +57,7 @@ export const stockService = {
         params.push(filters.date_end);
       }
       if (filters.type) {
-        query += ' AND sm.type = ?';
+        query += ' AND sm.movement_type = ?';
         params.push(filters.type);
       }
       if (filters.product_id) {
@@ -91,7 +91,7 @@ export const stockService = {
   async getById(id: number | string) {
     try {
       const query = `
-        SELECT sm.*, p.name as product_name, p.reference as product_reference, u.username as user_name
+        SELECT sm.*, sm.movement_type as type, p.name as product_name, p.reference as product_reference, u.username as user_name
         FROM stock_movements sm
         LEFT JOIN products p ON sm.product_id = p.id
         LEFT JOIN users u ON sm.user_id = u.id
@@ -125,7 +125,7 @@ export const stockService = {
       );
 
       const [result]: any = await connection.query(
-        'INSERT INTO stock_movements (product_id, type, quantity, user_id) VALUES (?, ?, ?, ?)',
+        'INSERT INTO stock_movements (product_id, movement_type, quantity, user_id) VALUES (?, ?, ?, ?)',
         [productId, type, quantity, userId]
       );
 
@@ -157,11 +157,12 @@ export const stockService = {
       const oldMovement = movementRows[0];
 
       // Revert old movement
-      const oldQtyChange = oldMovement.type === 'IN' ? -oldMovement.quantity : oldMovement.quantity;
+      const oldType = oldMovement.type || oldMovement.movement_type;
+      const oldQtyChange = oldType === 'IN' ? -oldMovement.quantity : oldMovement.quantity;
       await connection.query('UPDATE products SET quantity = quantity + ? WHERE id = ?', [oldQtyChange, oldMovement.product_id]);
 
       // Apply new movement
-      const newType = data.type || oldMovement.type;
+      const newType = data.type || oldMovement.type || oldMovement.movement_type;
       const newQuantity = data.quantity !== undefined ? data.quantity : oldMovement.quantity;
       const newProductId = data.product_id || oldMovement.product_id;
       
@@ -176,11 +177,13 @@ export const stockService = {
 
       // Update movement
       const allowedFields = ['product_id', 'type', 'quantity'];
+      const dbFields: any = { type: 'movement_type' };
       const updates: string[] = [];
       const params: any[] = [];
       for (const field of allowedFields) {
         if (data[field] !== undefined) {
-          updates.push(`\`${field}\` = ?`);
+          const dbField = dbFields[field] || field;
+          updates.push(`\`${dbField}\` = ?`);
           params.push(data[field]);
         }
       }
@@ -211,7 +214,8 @@ export const stockService = {
       const oldMovement = movementRows[0];
 
       // Revert old movement
-      const oldQtyChange = oldMovement.type === 'IN' ? -oldMovement.quantity : oldMovement.quantity;
+      const oldType = oldMovement.type || oldMovement.movement_type;
+      const oldQtyChange = oldType === 'IN' ? -oldMovement.quantity : oldMovement.quantity;
       await connection.query('UPDATE products SET quantity = quantity + ? WHERE id = ?', [oldQtyChange, oldMovement.product_id]);
 
       await connection.query('DELETE FROM stock_movements WHERE id = ?', [id]);

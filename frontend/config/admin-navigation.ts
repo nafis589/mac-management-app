@@ -61,13 +61,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Stock",
         url: "/stock",
         icon: Box,
-        comingSoon: true,
       },
       {
         title: "Ventes",
         url: "/ventes",
         icon: ShoppingCart,
-        comingSoon: true,
       },
     ],
   },
