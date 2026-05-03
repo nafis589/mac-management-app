@@ -71,6 +71,8 @@ export interface StockMovement {
   quantity: number
   user_name: string
   created_at: string
+  sale_price?: number
+  total_value?: number
 }
 
 function getPhotoUrl(photosRaw: any) {
@@ -452,6 +454,7 @@ export function StockClient({
                       <TableHead>Produit</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead className="text-right">Quantité</TableHead>
+                      <TableHead className="text-right">Valeur totale</TableHead>
                       <TableHead>Utilisateur</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -483,6 +486,9 @@ export function StockClient({
                           <TableCell className="text-right font-medium">
                             {movement.type === "IN" ? "+" : "-"}{movement.quantity}
                           </TableCell>
+                          <TableCell className="text-right whitespace-nowrap text-muted-foreground">
+                            {movement.total_value != null ? `${Number(movement.total_value).toLocaleString("fr-FR")} FCFA` : "-"}
+                          </TableCell>
                           <TableCell className="text-muted-foreground">
                             {movement.user_name || "Système"}
                           </TableCell>
@@ -490,7 +496,7 @@ export function StockClient({
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                        <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                           Aucun mouvement trouvé.
                         </TableCell>
                       </TableRow>

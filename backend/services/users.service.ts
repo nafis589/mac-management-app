@@ -160,22 +160,31 @@ export class UsersService {
     }
   }
 
-  static async deleteUser(id: number | string) {
+  static async deleteUser(id: number | string, currentUserId: number | string) {
     try {
+      if (String(id) === String(currentUserId)) {
+        throw new Error('Auto-suppression interdite');
+      }
+
+      const [users]: any = await db.query('SELECT role FROM users WHERE id = ?', [id]);
+      if (users.length === 0) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      if (users[0].role === 'ADMIN') {
+        throw new Error('Admin non supprimable');
+      }
+
       // Soft delete : UPDATE users SET status = 'INACTIVE'
       const [result]: any = await db.query(
         "UPDATE users SET status = 'INACTIVE' WHERE id = ?",
         [id]
       );
 
-      if (result.affectedRows === 0) {
-        throw new Error('Utilisateur non trouvé');
-      }
-
       // INSERT log (action='USER_DELETED')
       await db.query(
         'INSERT INTO logs (user_id, action, details) VALUES (?, ?, ?)',
-        [id, 'USER_DELETED', JSON.stringify({ target_id: id })]
+        [currentUserId, 'USER_DELETED', JSON.stringify({ target_id: id })]
       );
 
       logger.info('Utilisateur désactivé (soft delete)', { userId: id });

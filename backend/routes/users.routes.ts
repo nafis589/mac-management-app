@@ -46,7 +46,8 @@ router.patch('/:id', async (req, res) => {
 // DELETE /api/users/:id
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await UsersService.deleteUser(req.params.id);
+    const currentUserId = (req as any).user?.id || req.query.currentUserId || req.body.currentUserId || 1;
+    const result = await UsersService.deleteUser(req.params.id, currentUserId);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });

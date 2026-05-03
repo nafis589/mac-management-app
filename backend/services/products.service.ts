@@ -48,6 +48,13 @@ export const productsService = {
         ]
       );
 
+      if (quantity > 0) {
+        await connection.query(
+          'INSERT INTO stock_movements (product_id, movement_type, quantity, user_id) VALUES (?, ?, ?, ?)',
+          [result.insertId, 'IN', quantity, productData.user_id || null]
+        );
+      }
+
       await connection.commit();
       return { id: result.insertId, reference };
     } catch (error) {
@@ -137,7 +144,10 @@ export const productsService = {
   },
 
   async update(id: number | string, productData: any) {
+    const connection = await pool.getConnection();
     try {
+      await connection.beginTransaction();
+
       const allowedFields = [
         'name', 'category_id', 'brand_id', 'size', 'color',
         'condition', 'purchase_price', 'sale_price', 'quantity',
@@ -145,6 +155,14 @@ export const productsService = {
       ];
       const updates: string[] = [];
       const params: any[] = [];
+
+      let oldQuantity = 0;
+      if (productData.quantity !== undefined) {
+        const [rows]: any = await connection.query('SELECT quantity FROM products WHERE id = ?', [id]);
+        if (rows.length > 0) {
+          oldQuantity = Number(rows[0].quantity) || 0;
+        }
+      }
 
       for (const field of allowedFields) {
         if (productData[field] !== undefined) {
@@ -157,17 +175,36 @@ export const productsService = {
         }
       }
 
-      if (updates.length === 0) return true;
+      if (updates.length === 0) {
+        await connection.commit();
+        return true;
+      }
 
       params.push(id);
       
       const sql = `UPDATE products SET ${updates.join(', ')} WHERE id = ?`;
-      await pool.query(sql, params);
+      await connection.query(sql, params);
+
+      if (productData.quantity !== undefined) {
+        const newQuantity = Number(productData.quantity);
+        const diff = newQuantity - oldQuantity;
+        if (diff !== 0) {
+          const type = diff > 0 ? 'IN' : 'OUT';
+          await connection.query(
+            'INSERT INTO stock_movements (product_id, movement_type, quantity, user_id) VALUES (?, ?, ?, ?)',
+            [id, type, Math.abs(diff), productData.user_id || null]
+          );
+        }
+      }
       
+      await connection.commit();
       return true;
     } catch (error) {
+      await connection.rollback();
       logger.error('productsService.update error:', error);
       throw error;
+    } finally {
+      connection.release();
     }
   },
 

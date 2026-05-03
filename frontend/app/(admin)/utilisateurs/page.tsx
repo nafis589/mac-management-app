@@ -193,11 +193,28 @@ async function resetUserPassword(
   if (!response.ok) throw new Error(data.error || "Erreur lors du reset du mot de passe");
 }
 
+async function deleteUserApi(id: number): Promise<void> {
+  let currentUserId = 1;
+  const userStr = localStorage.getItem("user");
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      currentUserId = user.id;
+    } catch (e) { }
+  }
+  const response = await fetch(`${API_BASE}/users/${id}?currentUserId=${currentUserId}`, {
+    method: "DELETE",
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || "Erreur lors de la suppression");
+}
+
 // ─── Columns Definition ─────────────────────────────────────────────────────
 function useUsersColumns(
   onEdit: (user: User) => void,
   onToggleStatus: (user: User) => void,
-  onResetPassword: (user: User) => void
+  onResetPassword: (user: User) => void,
+  onDelete: (user: User) => void
 ): ColumnDef<User>[] {
   return React.useMemo(
     () => [
@@ -288,19 +305,31 @@ function useUsersColumns(
                 <DropdownMenuItem onClick={() => onEdit(row.original)}>
                   Modifier les informations
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onToggleStatus(row.original)}>
-                  {row.original.status === "ACTIVE" ? "Désactiver le compte" : "Activer le compte"}
-                </DropdownMenuItem>
+                {row.original.role !== "ADMIN" && (
+                  <DropdownMenuItem onClick={() => onToggleStatus(row.original)}>
+                    {row.original.status === "ACTIVE" ? "Désactiver le compte" : "Activer le compte"}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => onResetPassword(row.original)}>
                   Réinitialiser le mot de passe
                 </DropdownMenuItem>
+                {row.original.role !== "ADMIN" && (
+                  <>
+                    <DropdownMenuItem
+                      className="text-red-600 focus:bg-red-50 focus:text-red-600 dark:focus:bg-red-950/50"
+                      onClick={() => onDelete(row.original)}
+                    >
+                      Supprimer l'utilisateur
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         ),
       },
     ],
-    [onEdit, onToggleStatus, onResetPassword]
+    [onEdit, onToggleStatus, onResetPassword, onDelete]
   );
 }
 
@@ -821,6 +850,65 @@ function ToggleStatusDialog({
   );
 }
 
+// ─── Delete User Confirmation Dialog ─────────────────────────────────────────
+function DeleteUserDialog({
+  open,
+  onOpenChange,
+  user,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: User | null;
+  onSuccess: () => void;
+}) {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleConfirm = async () => {
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      await deleteUserApi(user.id);
+      toast.success("Utilisateur supprimé avec succès");
+      onOpenChange(false);
+      onSuccess();
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la suppression");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer l'utilisateur ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Êtes-vous sûr de vouloir supprimer définitivement l'utilisateur{" "}
+            <strong>
+              {user?.first_name} {user?.last_name}
+            </strong>{" "}
+            ? Cette action est irréversible.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isSubmitting}>Annuler</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleConfirm}
+            disabled={isSubmitting}
+            className="bg-red-600 text-white hover:bg-red-700"
+          >
+            {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
+            Supprimer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
 // ─── Users Table (adapted from default-V1 recent-customers-table) ────────────
 const statusOptions = [
   { value: "all", label: "Tous" },
@@ -846,13 +934,15 @@ function UsersTable({
   onEdit,
   onToggleStatus,
   onResetPassword,
+  onDelete,
 }: {
   data: User[];
   onEdit: (user: User) => void;
   onToggleStatus: (user: User) => void;
   onResetPassword: (user: User) => void;
+  onDelete: (user: User) => void;
 }) {
-  const columns = useUsersColumns(onEdit, onToggleStatus, onResetPassword);
+  const columns = useUsersColumns(onEdit, onToggleStatus, onResetPassword, onDelete);
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([
@@ -1176,6 +1266,7 @@ export default function UtilisateursPage() {
   const [editOpen, setEditOpen] = React.useState(false);
   const [toggleOpen, setToggleOpen] = React.useState(false);
   const [resetPwdOpen, setResetPwdOpen] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 
   const loadUsers = React.useCallback(async () => {
@@ -1208,6 +1299,11 @@ export default function UtilisateursPage() {
   const handleResetPassword = React.useCallback((user: User) => {
     setSelectedUser(user);
     setResetPwdOpen(true);
+  }, []);
+
+  const handleDelete = React.useCallback((user: User) => {
+    setSelectedUser(user);
+    setDeleteOpen(true);
   }, []);
 
   const handleSuccess = React.useCallback(() => {
@@ -1342,6 +1438,7 @@ export default function UtilisateursPage() {
               onEdit={handleEdit}
               onToggleStatus={handleToggleStatus}
               onResetPassword={handleResetPassword}
+              onDelete={handleDelete}
             />
           )}
         </CardContent>
@@ -1369,6 +1466,12 @@ export default function UtilisateursPage() {
         open={resetPwdOpen}
         onOpenChange={setResetPwdOpen}
         user={selectedUser}
+      />
+      <DeleteUserDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        user={selectedUser}
+        onSuccess={handleSuccess}
       />
     </div>
   );

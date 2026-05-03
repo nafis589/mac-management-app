@@ -40,7 +40,14 @@ export const stockService = {
   async getMovements(filters: any = {}) {
     try {
       let query = `
-        SELECT sm.*, sm.movement_type as type, p.name as product_name, p.reference as product_reference, u.username as user_name
+        SELECT 
+          sm.*, 
+          sm.movement_type as type, 
+          p.name as product_name, 
+          p.reference as product_reference, 
+          p.sale_price,
+          (p.sale_price * sm.quantity) AS total_value,
+          u.username as user_name
         FROM stock_movements sm
         LEFT JOIN products p ON sm.product_id = p.id
         LEFT JOIN users u ON sm.user_id = u.id
