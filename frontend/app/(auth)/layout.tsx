@@ -1,4 +1,4 @@
-import { Command } from "lucide-react";
+import { Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export default function AuthLayout({
@@ -16,7 +16,7 @@ export default function AuthLayout({
           <div className="relative z-10 flex flex-col justify-between w-full h-full p-12 text-primary-foreground">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Command className="size-10 text-white" />
+                <Tag className="size-10 text-white" />
                 <h1 className="font-semibold text-2xl tracking-tight">Friperie de Luxe</h1>
               </div>
               <p className="text-primary-foreground/80 font-medium text-lg">Gérez. Suivez. Vendez vos articles.</p>

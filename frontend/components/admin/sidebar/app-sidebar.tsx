@@ -41,14 +41,37 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }, []);
 
+  const filteredSidebarItems = React.useMemo(() => {
+    return sidebarItems
+      .map((group) => {
+        const filteredItems = group.items
+          .filter((item) => {
+            if (item.roles && !item.roles.includes(currentUser.role)) return false;
+            return true;
+          })
+          .map((item) => {
+            if (item.subItems) {
+              return {
+                ...item,
+                subItems: item.subItems.filter(
+                  (sub) => !sub.roles || sub.roles.includes(currentUser.role)
+                ),
+              };
+            }
+            return item;
+          });
+        return { ...group, items: filteredItems };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [currentUser.role]);
+
   return (
     <Sidebar variant="inset" collapsible="icon" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link prefetch={false} href="/admin">
-                <Command />
+              <Link prefetch={false} href="/">
                 <span className="font-semibold text-base">Friperie de Luxe</span>
               </Link>
             </SidebarMenuButton>
@@ -56,7 +79,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={sidebarItems} />
+        <NavMain items={filteredSidebarItems} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={currentUser} />

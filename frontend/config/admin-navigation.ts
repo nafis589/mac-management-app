@@ -14,6 +14,7 @@ export interface NavSubItem {
   icon?: LucideIcon;
   comingSoon?: boolean;
   newTab?: boolean;
+  roles?: string[];
 }
 
 export interface NavMainItem {
@@ -23,6 +24,7 @@ export interface NavMainItem {
   subItems?: NavSubItem[];
   comingSoon?: boolean;
   newTab?: boolean;
+  roles?: string[];
 }
 
 export interface NavGroup {
@@ -51,6 +53,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Utilisateurs",
         url: "/utilisateurs",
         icon: Users,
+        roles: ["admin"],
       },
       {
         title: "Produits",
@@ -77,10 +80,9 @@ export const sidebarItems: NavGroup[] = [
         title: "Rapports",
         url: "/rapports",
         icon: BarChart3,
-        comingSoon: true,
         subItems: [
-          { title: "Journalier", url: "/rapports/journalier", comingSoon: true },
-          { title: "Mensuel", url: "/rapports/mensuel", comingSoon: true },
+          { title: "Journalier", url: "/rapports/journalier" },
+          { title: "Mensuel", url: "/rapports/mensuel" },
         ],
       },
     ],

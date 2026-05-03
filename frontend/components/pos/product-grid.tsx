@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Product, getPhotoUrl, usePosStore } from "@/lib/pos-store"
 
+import { useRouter } from "next/navigation"
+
 interface Category {
   id: number
   name: string
@@ -24,6 +26,7 @@ function useDebounce<T>(value: T, delay: number): T {
 const API_BASE = "http://localhost:4000/api"
 
 export function ProductGrid() {
+  const router = useRouter()
   const { cart, addToCart } = usePosStore()
   const [products, setProducts] = React.useState<Product[]>([])
   const [categories, setCategories] = React.useState<Category[]>([])
@@ -100,10 +103,9 @@ export function ProductGrid() {
             className={cn(
               "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
               selectedCategory === "all"
-                ? "text-white shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
             )}
-            style={selectedCategory === "all" ? { background: "#FF9066" } : {}}
           >
             Tout
             <span className="ml-1.5 text-xs opacity-80">{products.filter(p => p.quantity > 0).length}</span>
@@ -117,10 +119,9 @@ export function ProductGrid() {
                 className={cn(
                   "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all",
                   selectedCategory === String(cat.id)
-                    ? "text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 )}
-                style={selectedCategory === String(cat.id) ? { background: "#FF9066" } : {}}
               >
                 {cat.name}
                 <span className="ml-1.5 text-xs opacity-80">{count}</span>
@@ -153,7 +154,10 @@ export function ProductGrid() {
                   className="bg-white rounded-2xl border border-gray-100 group relative p-2"
                 >
                   {/* Image */}
-                  <div className="aspect-[4/3] bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4">
+                  <div 
+                    className="aspect-[4/3] bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
+                    onClick={() => router.push(`/produits/${product.id}?viewOnly=true`)}
+                  >
 
                     {photoUrl ? (
                       <img src={photoUrl} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
@@ -163,7 +167,7 @@ export function ProductGrid() {
                       </div>
                     )}
                     {inCart > 0 && (
-                      <div className="absolute top-2 left-2 h-6 min-w-6 px-1.5 rounded-full flex items-center justify-center text-[11px] font-bold text-white shadow-md" style={{ background: "#FF9066" }}>
+                      <div className="absolute top-2 left-2 h-6 min-w-6 px-1.5 rounded-full flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-md bg-primary">
                         {inCart}
                       </div>
                     )}
@@ -178,7 +182,7 @@ export function ProductGrid() {
                       </span>
                       <button
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="h-8 w-8 rounded-lg bg-gray-900 text-white flex items-center justify-center hover:bg-gray-700 transition-colors active:scale-95 shrink-0"
+                        className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 shrink-0"
                       >
                         <Plus className="h-4 w-4" />
                       </button>

@@ -28,8 +28,14 @@ export function NavUser({
   const router = useRouter();
 
   const handleLogout = () => {
+    // Clean up all auth-related storage keys
     localStorage.removeItem("user");
-    router.push("/sign-in");
+    localStorage.removeItem("token");
+    localStorage.removeItem("fc_user");
+    localStorage.removeItem("fc_token");
+    // Clear any auth cookies
+    document.cookie = "fc_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    router.replace("/sign-in");
   };
 
   return (
@@ -75,7 +81,6 @@ export function NavUser({
                 Mon compte
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Déconnexion

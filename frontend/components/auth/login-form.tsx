@@ -74,13 +74,9 @@ export function LoginForm() {
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      if (user?.role === "ADMIN") {
-        router.push("/admin");
-      } else if (user?.role === "CASHIER") {
-        router.push("/caisse");
-      } else {
-        router.push("/");
-      }
+      // All roles go to root — (admin) is a route group, not a URL segment
+      // The sidebar handles which tabs are visible per role
+      router.push("/");
     } catch (error: any) {
       toast.error("Erreur de connexion", {
         description: error.message || "Nom d'utilisateur ou mot de passe incorrect",

@@ -127,7 +127,7 @@ function KpiCard({
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 min-w-0 overflow-hidden">
       <div className="flex items-center gap-2 text-gray-500 text-xs font-medium">
-        <span className="flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 bg-white text-gray-500 flex-shrink-0">
+        <span className="flex items-center justify-center w-7 h-7 rounded-full bg-fp/10 text-fp flex-shrink-0">
           <Icon size={13} strokeWidth={1.8} />
         </span>
         <span className="truncate">{label}</span>
@@ -147,8 +147,12 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsViewOnly(new URLSearchParams(window.location.search).get('viewOnly') === 'true');
+    }
     loadProduct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
@@ -238,9 +242,9 @@ export default function ProductDetailPage() {
       {/* ── HEADER ── */}
       <div className="flex items-start justify-between mb-7">
         <div className="flex items-center gap-4">
-          {/* Bouton retour — identique à la page nouveau/modifier */}
+          {/* Bouton retour */}
           <Link
-            href="/produits"
+            href={isViewOnly ? "/ventes" : "/produits"}
             className="p-2 border border-gray-200 rounded-md bg-white hover:bg-gray-50 text-gray-500 transition-colors flex-shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -257,22 +261,25 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Boutons Edit / Delete — style image : ronds rouges */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => router.push(`/produits/${product.id}/modifier`)}
-            className="inline-flex items-center gap-1.5 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-sm font-medium rounded-full px-4 py-2 transition-colors"
-          >
-            <Pencil size={14} strokeWidth={2.2} />
-            Edit
-          </button>
-          <button
-            onClick={() => setShowDeleteModal(true)}
-            className="inline-flex items-center justify-center w-9 h-9 bg-red-500 hover:bg-red-600 active:bg-red-700 text-white rounded-full transition-colors"
-          >
-            <Trash2 size={15} strokeWidth={2.2} />
-          </button>
-        </div>
+        {/* Boutons Edit / Delete */}
+        {!isViewOnly && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push(`/produits/${product.id}/modifier`)}
+              className="inline-flex items-center gap-2 bg-white text-fp border border-fp/20 hover:bg-fp/10 text-sm font-medium rounded-lg px-4 py-2 shadow-sm transition-colors"
+            >
+              <Pencil size={15} strokeWidth={2} />
+              Éditer
+            </button>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg px-4 py-2 shadow-sm transition-colors"
+            >
+              <Trash2 size={15} strokeWidth={2} />
+              Supprimer
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── MAIN LAYOUT : Gauche = Galerie | Droite = KPIs + contenu ── */}
@@ -303,13 +310,13 @@ export default function ProductDetailPage() {
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 hover:bg-gray-50 transition-colors"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white flex items-center justify-center text-fp hover:bg-gray-50 transition-colors"
                 >
                   <ChevronLeft size={18} strokeWidth={2.5} />
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white flex items-center justify-center text-red-500 hover:bg-gray-50 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white flex items-center justify-center text-fp hover:bg-gray-50 transition-colors"
                 >
                   <ChevronRight size={18} strokeWidth={2.5} />
                 </button>
@@ -390,20 +397,20 @@ export default function ProductDetailPage() {
                 <h2 className="text-base font-bold text-gray-900 mb-2">Key Features:</h2>
                 <ul className="space-y-2">
                   <li className="flex items-center gap-2 text-sm text-gray-900">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-900 flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fp flex-shrink-0" />
                     État : {conditionLabel[product.condition] ?? product.condition}
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-900">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-900 flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fp flex-shrink-0" />
                     Marque : {product.brand_name ?? '—'}
                   </li>
                   <li className="flex items-center gap-2 text-sm text-gray-900">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-900 flex-shrink-0" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fp flex-shrink-0" />
                     Catégorie : {product.category_name ?? '—'}
                   </li>
                   {product.size && (
                     <li className="flex items-center gap-2 text-sm text-gray-900">
-                      <span className="w-1.5 h-1.5 rounded-full bg-gray-900 flex-shrink-0" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-fp flex-shrink-0" />
                       Taille : {product.size}
                     </li>
                   )}
@@ -430,11 +437,11 @@ export default function ProductDetailPage() {
                   <h2 className="text-base font-bold text-gray-900 mb-2">Sizes:</h2>
                   <div className="flex items-center gap-2 flex-wrap">
                     {product.size ? (
-                      <button className="px-4 py-1.5 rounded-full text-sm font-medium border border-gray-900 text-gray-900 bg-white">
+                      <button className="px-4 py-1.5 rounded-full text-sm font-medium border border-fp text-fp bg-fp/5">
                         {product.size}
                       </button>
                     ) : (
-                      <button className="px-4 py-1.5 rounded-full text-sm font-medium border border-gray-900 text-gray-900 bg-white">
+                      <button className="px-4 py-1.5 rounded-full text-sm font-medium border border-fp text-fp bg-fp/5">
                         Unique
                       </button>
                     )}

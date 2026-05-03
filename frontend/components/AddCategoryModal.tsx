@@ -98,6 +98,7 @@ export function AddCategoryModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoFocus
+            className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0"
             onKeyDown={(e) => {
               // Soumission rapide avec Entrée
               if (e.key === "Enter" && !loading && name.trim().length >= 2) {
@@ -108,12 +109,13 @@ export function AddCategoryModal({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={loading}>
+          <Button variant="outline" onClick={handleClose} disabled={loading} className="border-fp/20 text-fp hover:bg-fp/10 hover:text-fp">
             Annuler
           </Button>
           <Button
             onClick={handleCreate}
             disabled={loading || name.trim().length < 2}
+            className="bg-fp hover:bg-fp/90 text-white"
           >
             {loading ? "Enregistrement..." : "Enregistrer"}
           </Button>

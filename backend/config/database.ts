@@ -14,13 +14,15 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-pool.getConnection()
-  .then((conn) => {
-    logger.info('Connected to the database successfully');
-    conn.release();
-  })
-  .catch((err) => {
-    logger.error('Database connection failed', err);
-  });
+if (process.env.NODE_ENV !== 'test') {
+  pool.getConnection()
+    .then((conn) => {
+      logger.info('Connected to the database successfully');
+      conn.release();
+    })
+    .catch((err) => {
+      logger.error('Database connection failed', err);
+    });
+}
 
 export default pool;

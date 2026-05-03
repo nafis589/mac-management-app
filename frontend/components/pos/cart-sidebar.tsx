@@ -22,12 +22,14 @@ import {
 } from "@/components/ui/table"
 import { usePosStore, getPhotoUrl } from "@/lib/pos-store"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface CartSidebarProps {
   onEncaisser: () => void
 }
 
 export function CartSidebar({ onEncaisser }: CartSidebarProps) {
+  const router = useRouter()
   const {
     cart,
     discountType,
@@ -102,7 +104,10 @@ export function CartSidebar({ onEncaisser }: CartSidebarProps) {
                   className="relative group flex gap-3 items-center border border-border/40 rounded-xl px-1.5 py-1 bg-card hover:border-border transition-colors"
                 >
                   {/* Thumbnail */}
-                  <div className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/40">
+                  <div 
+                    className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/40 cursor-pointer"
+                    onClick={() => router.push(`/produits/${item.id}?viewOnly=true`)}
+                  >
                     {photoUrl ? (
                       <img
                         src={photoUrl}
@@ -291,7 +296,7 @@ export function CartSidebar({ onEncaisser }: CartSidebarProps) {
             style={{
               background:
                 cart.length > 0
-                  ? "linear-gradient(135deg, #FF9066 0%, #ff7043 100%)"
+                  ? "#dc4818"
                   : "#d1d5db",
             }}
             disabled={cart.length === 0}

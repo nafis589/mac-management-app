@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -402,7 +403,7 @@ function CreateUserDialog({
                   <FormItem>
                     <FormLabel>Prénom</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jean" {...field} />
+                      <Input placeholder="Jean" className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -419,7 +420,7 @@ function CreateUserDialog({
                   <FormItem>
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
-                      <Input placeholder="Dupont" {...field} />
+                      <Input placeholder="Dupont" className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -437,7 +438,7 @@ function CreateUserDialog({
                 <FormItem>
                   <FormLabel>Nom d&apos;utilisateur</FormLabel>
                   <FormControl>
-                    <Input placeholder="jean.dupont" {...field} />
+                    <Input placeholder="jean.dupont" className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -459,7 +460,7 @@ function CreateUserDialog({
                 <FormItem>
                   <FormLabel>Mot de passe</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -589,7 +590,7 @@ function EditUserDialog({
                   <FormItem>
                     <FormLabel>Prénom</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -606,7 +607,7 @@ function EditUserDialog({
                   <FormItem>
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -733,7 +734,7 @@ function ResetPasswordDialog({
                 <FormItem>
                   <FormLabel>Nouveau mot de passe</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
+                    <Input type="password" placeholder="••••••••" className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -1147,8 +1148,28 @@ function UsersTable({
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function UtilisateursPage() {
+  const router = useRouter();
   const [users, setUsers] = React.useState<User[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isAuthorized, setIsAuthorized] = React.useState(false);
+
+  React.useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role?.toLowerCase() !== "admin") {
+          router.replace("/");
+        } else {
+          setIsAuthorized(true);
+        }
+      } catch (e) {
+        router.replace("/");
+      }
+    } else {
+      router.replace("/");
+    }
+  }, [router]);
 
   // Dialog states
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -1169,8 +1190,10 @@ export default function UtilisateursPage() {
   }, []);
 
   React.useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    if (isAuthorized) {
+      loadUsers();
+    }
+  }, [loadUsers, isAuthorized]);
 
   const handleEdit = React.useCallback((user: User) => {
     setSelectedUser(user);
@@ -1196,6 +1219,8 @@ export default function UtilisateursPage() {
   const activeUsers = users.filter((u) => u.status === "ACTIVE").length;
   const adminUsers = users.filter((u) => u.role === "ADMIN").length;
   const cashierUsers = users.filter((u) => u.role === "CASHIER").length;
+
+  if (!isAuthorized) return null;
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6">

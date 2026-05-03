@@ -182,7 +182,7 @@ export default function NouveauProduitPage() {
   const handleSubmitPublish = handleSubmit((data: ProductFormValues) => onSubmit(data, false));
 
   // Styles constants as requested
-  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400";
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-fp focus:border-fp bg-white placeholder-gray-400";
   const sectionClass = "bg-white p-6 border border-gray-200 rounded-lg shadow-none";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
@@ -207,7 +207,7 @@ export default function NouveauProduitPage() {
           </button>
           <button 
             type="button"
-            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm"
+            className="px-4 py-2 bg-white text-fp border border-fp/20 rounded-lg font-medium hover:bg-fp-light transition-colors shadow-sm"
             onClick={handleSubmitDraft}
             disabled={loading}
           >
@@ -215,7 +215,7 @@ export default function NouveauProduitPage() {
           </button>
           <button 
             type="button"
-            className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium hover:bg-rose-600 shadow-sm transition-colors"
+            className="px-4 py-2 bg-fp text-white rounded-lg font-medium hover:bg-fp-hover shadow-sm transition-colors"
             onClick={handleSubmitPublish}
             disabled={loading}
           >
@@ -263,7 +263,7 @@ export default function NouveauProduitPage() {
           <div className={sectionClass}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-base font-semibold text-gray-900">Product Images</h2>
-              <span className="text-sm text-blue-600 cursor-pointer hover:underline">Add media from URL</span>
+              <span className="text-sm text-fp cursor-pointer hover:underline">Add media from URL</span>
             </div>
             
             <div
@@ -399,7 +399,7 @@ export default function NouveauProduitPage() {
                 <input 
                   type="checkbox" 
                   id="charge_tax" 
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-gray-300 text-fp focus:ring-fp accent-fp"
                   checked={chargeTax}
                   onChange={(e) => setValue("charge_tax", e.target.checked)}
                 />
@@ -411,16 +411,6 @@ export default function NouveauProduitPage() {
           <div className={sectionClass}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-base font-semibold text-gray-900">Stock</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">In stock</span>
-                <button 
-                  type="button" 
-                  onClick={() => setValue("in_stock", !inStock)}
-                  className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors ${inStock ? 'bg-blue-600' : 'bg-gray-200'}`}
-                >
-                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${inStock ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </button>
-              </div>
             </div>
             
             <div className="space-y-4">

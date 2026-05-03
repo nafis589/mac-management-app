@@ -181,8 +181,10 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
           const isLow = q < min
           return (
             <Badge
-              variant={isLow ? "destructive" : "secondary"}
-              className={!isLow ? "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400" : ""}
+              variant="outline"
+              className={isLow 
+                ? "bg-red-500/15 text-red-700 hover:bg-red-500/25 border-transparent dark:text-red-400" 
+                : "bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 border-transparent dark:text-emerald-400"}
             >
               <span className={`mr-1 inline-block size-1.5 rounded-full ${isLow ? "bg-red-500" : "bg-emerald-500"}`} />
               {q}

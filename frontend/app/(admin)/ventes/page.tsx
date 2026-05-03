@@ -12,6 +12,7 @@ import {
 import { usePosStore } from "@/lib/pos-store"
 import { ProductGrid } from "@/components/pos/product-grid"
 import { CartSidebar } from "@/components/pos/cart-sidebar"
+import { generateTicket, TicketSaleData, TicketItemData } from "@/lib/ticket-generator"
 
 const API_BASE = "http://localhost:4000/api"
 
@@ -77,6 +78,33 @@ export default function CaissePage() {
     setAmountGiven("")
   }
 
+  const handlePrintTicket = () => {
+    const saleData: TicketSaleData = {
+      reference: saleReference,
+      date: new Date(),
+      cashierName: "Admin", // TODO: replace with real cashier name
+      subTotal: subTotal,
+      discountType: discountType as 'PERCENTAGE' | 'FIXED' | null,
+      discountValue: discountValue,
+      finalAmount: finalTotal,
+    }
+
+    const itemsToPrint: TicketItemData[] = cart.map(item => ({
+      name: item.name,
+      quantity: item.cartQuantity,
+      unitPrice: Number(item.sale_price)
+    }))
+
+    try {
+      const pdfBlob = generateTicket(saleData, itemsToPrint)
+      window.open(URL.createObjectURL(pdfBlob))
+      toast.success("Ticket généré avec succès")
+    } catch (error) {
+      console.error(error)
+      toast.error("Erreur lors de la génération du ticket")
+    }
+  }
+
   return (
     <div className="flex h-[calc(100vh-theme(spacing.16))] -m-6 overflow-hidden rounded-t-lg bg-background">
       {/* LEFT: Products (60%) */}
@@ -108,7 +136,7 @@ export default function CaissePage() {
               <Input
                 type="number"
                 placeholder="Montant donné..."
-                className="h-12 text-lg shadow-none bg-white font-medium"
+                className="h-12 text-lg shadow-none bg-white font-medium focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0"
                 value={amountGiven}
                 onChange={(e) => setAmountGiven(e.target.value)}
               />
@@ -137,9 +165,14 @@ export default function CaissePage() {
       </Dialog>
 
       {/* Success Modal */}
-      <Dialog open={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
-        <DialogContent className="sm:max-w-sm [&>button]:hidden text-center overflow-hidden">
-          <div className="absolute inset-0 bg-emerald-50 -z-10" />
+      <Dialog open={isSuccessOpen} onOpenChange={(open) => { if (open) setIsSuccessOpen(true); }}>
+        <DialogContent 
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          className="sm:max-w-sm [&>button]:hidden text-center overflow-hidden"
+        >
+          <DialogTitle className="sr-only">Vente réussie</DialogTitle>
+          <div className="absolute inset-0 bg-white -z-10" />
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center ring-8 ring-emerald-50">
               <CheckCircle2 className="h-10 w-10 text-emerald-600" />
@@ -150,7 +183,7 @@ export default function CaissePage() {
             </div>
           </div>
           <DialogFooter className="flex-col sm:flex-col gap-2 w-full">
-            <Button className="w-full" size="lg" variant="outline" onClick={() => { toast.info("Impression..."); handleNewSale(); }}>
+            <Button className="w-full" size="lg" variant="outline" onClick={() => { handlePrintTicket(); handleNewSale(); }}>
               Imprimer le ticket
             </Button>
             <Button className="w-full" size="lg" onClick={handleNewSale}>Nouvelle vente</Button>

@@ -238,7 +238,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-015 ⏳ Service Sales Backend (CRITIQUE)
+#### TASK-015 ✅ Service Sales Backend (CRITIQUE)
 **Priorité** : CRITIQUE  
 **Durée** : 5h  
 **Description** :
@@ -262,7 +262,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-016 ⏳ Interface Caisse (POS) Frontend
+#### TASK-016 ✅ Interface Caisse (POS) Frontend
 **Priorité** : CRITIQUE  
 **Durée** : 6h  
 **Description** :
@@ -278,7 +278,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-017 ⏳ Génération Ticket PDF
+#### TASK-017 ✅ Génération Ticket PDF
 **Priorité** : Haute  
 **Durée** : 2h  
 **Description** :
@@ -288,14 +288,14 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
   - Logo boutique
   - Date/heure, référence vente
   - Liste articles (nom, qté, prix)
-  - Total, mode paiement
+  - Total,
 - Bouton "Imprimer" dans interface caisse
 
 ---
 
 ### 📈 SEMAINE 5 : RAPPORTS & STATISTIQUES
 
-#### TASK-018 ⏳ Service Reports Backend
+#### TASK-018 ✅ Service Reports Backend
 **Priorité** : Haute  
 **Durée** : 4h  
 **Description** :
@@ -310,7 +310,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-019 ⏳ Page Rapports Journaliers Frontend
+#### TASK-019 ✅ Page Rapports Journaliers Frontend
 **Priorité** : Haute  
 **Durée** : 3h  
 **Description** :
@@ -322,7 +322,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-020 ⏳ Page Rapports Mensuels Frontend
+#### TASK-020 ✅ Page Rapports Mensuels Frontend
 **Priorité** : Haute  
 **Durée** : 3h  
 **Description** :
@@ -333,7 +333,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ---
 
-#### TASK-021 ⏳ Dashboard Analytics Principal
+#### TASK-021 ✅ Dashboard Analytics Principal
 **Priorité** : Moyenne  
 **Durée** : 3h  
 **Description** :
@@ -345,7 +345,7 @@ Crée le backend CRUD catégories/marques + modals d'ajout inline dans le formul
 
 ### 🧪 SEMAINE 6 : TESTS & POLISH PHASE 1
 
-#### TASK-022 ⏳ Tests Unitaires Backend
+#### TASK-022 ✅ Tests Unitaires Backend
 **Priorité** : Haute  
 **Durée** : 4h  
 **Description** :

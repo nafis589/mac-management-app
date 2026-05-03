@@ -112,9 +112,9 @@ export default function ModifierProduitPage() {
           condition: prod.condition || "EXCELLENT",
           sale_price: Number(prod.sale_price) || 0,
           purchase_price: Number(prod.purchase_price) || 0,
-          quantity: Number(prod.quantity) || 0,
-          min_stock: Number(prod.min_stock) || 2,
-          in_stock: prod.quantity > 0, // Mock logic based on stock
+          quantity: prod.quantity !== undefined && prod.quantity !== null ? Number(prod.quantity) : 0,
+          min_stock: prod.min_stock !== undefined && prod.min_stock !== null ? Number(prod.min_stock) : 2,
+          in_stock: prod.in_stock !== undefined && prod.in_stock !== null ? (prod.in_stock === true || String(prod.in_stock) === "true" || String(prod.in_stock) === "1" || prod.in_stock === 1) : true,
           charge_tax: false
         });
 
@@ -266,7 +266,7 @@ export default function ModifierProduitPage() {
   const handleSubmitPublish = handleSubmit((data: ProductFormValues) => onSubmit(data, false));
 
   // Styles constants
-  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white placeholder-gray-400";
+  const inputClass = "w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-fp focus:border-fp bg-white placeholder-gray-400";
   const sectionClass = "bg-white p-6 border border-gray-200 rounded-lg shadow-none";
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
@@ -302,7 +302,7 @@ export default function ModifierProduitPage() {
           </button>
           <button
             type="button"
-            className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm"
+            className="px-4 py-2 bg-white text-fp border border-fp/20 rounded-lg font-medium hover:bg-fp-light transition-colors shadow-sm"
             onClick={handleSubmitDraft}
             disabled={loading}
           >
@@ -310,7 +310,7 @@ export default function ModifierProduitPage() {
           </button>
           <button
             type="button"
-            className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium hover:bg-rose-600 shadow-sm transition-colors"
+            className="px-4 py-2 bg-fp text-white rounded-lg font-medium hover:bg-fp-hover shadow-sm transition-colors"
             onClick={handleSubmitPublish}
             disabled={loading}
           >
@@ -359,7 +359,7 @@ export default function ModifierProduitPage() {
           <div className={sectionClass}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-base font-semibold text-gray-900">Product Images</h2>
-              <span className="text-sm text-blue-600 cursor-pointer hover:underline">Add media from URL</span>
+              <span className="text-sm text-fp cursor-pointer hover:underline">Add media from URL</span>
             </div>
 
             <div
@@ -406,7 +406,7 @@ export default function ModifierProduitPage() {
                     </div>
                   ))}
                   {previews.map((preview, i) => (
-                    <div key={`new-${i}`} className="relative group rounded-lg overflow-hidden border border-blue-200 shadow-sm">
+                    <div key={`new-${i}`} className="relative group rounded-lg overflow-hidden border border-fp/20 shadow-sm">
                       <img src={preview} alt="preview" className="w-full h-24 object-cover" />
                       <button
                         type="button"
@@ -514,32 +514,13 @@ export default function ModifierProduitPage() {
                 {errors.purchase_price && <p className="text-red-500 text-xs mt-1">{errors.purchase_price.message}</p>}
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="charge_tax"
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  checked={chargeTax}
-                  onChange={(e) => setValue("charge_tax", e.target.checked)}
-                />
-                <label htmlFor="charge_tax" className="text-sm text-gray-700">Charge tax on this product</label>
-              </div>
+
             </div>
           </div>
 
           <div className={sectionClass}>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-base font-semibold text-gray-900">Stock</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">In stock</span>
-                <button
-                  type="button"
-                  onClick={() => setValue("in_stock", !inStock)}
-                  className={`w-11 h-6 rounded-full flex items-center px-1 transition-colors ${inStock ? 'bg-blue-600' : 'bg-gray-200'}`}
-                >
-                  <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${inStock ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                </button>
-              </div>
             </div>
 
             <div className="space-y-4">

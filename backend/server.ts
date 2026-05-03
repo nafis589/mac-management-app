@@ -29,6 +29,7 @@ import categoriesRoutes from './routes/categories.routes.js';
 import brandsRoutes from './routes/brands.routes.js';
 import stockRoutes from './routes/stock.routes.js';
 import salesRoutes from './routes/sales.routes.js';
+import reportsRoutes from './routes/reports.routes.js';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -38,6 +39,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/brands', brandsRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/reports', reportsRoutes);
 
 app.get("/", (req: Request, res: Response) => {
     res.send("API is running");

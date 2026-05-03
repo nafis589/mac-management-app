@@ -259,10 +259,10 @@ export function StockClient({
             <p className="text-muted-foreground text-sm">Basé sur le prix d&apos;achat</p>
           </CardContent>
         </Card>
-        <Card className={cn("shadow-none", initialDashboard.lowStockCount > 0 ? "border-red-500/50 bg-red-50/50 dark:bg-red-950/10" : "")}>
+        <Card className={cn("shadow-none", initialDashboard.lowStockCount > 0 ? "bg-red-50/50 dark:bg-red-950/10" : "")}>
           <CardHeader>
             <CardTitle>
-              <div className={cn("flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground", initialDashboard.lowStockCount > 0 && "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400")}>
+              <div className={cn("flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground", initialDashboard.lowStockCount > 0 && "text-red-600 dark:text-red-400")}>
                 <AlertTriangle className="size-4" />
               </div>
             </CardTitle>
@@ -331,7 +331,7 @@ export function StockClient({
                             <TableCell className="text-muted-foreground text-sm">{product.reference}</TableCell>
                             <TableCell className="text-right text-muted-foreground">{product.min_stock}</TableCell>
                             <TableCell className="text-right">
-                              <Badge variant="destructive" className="font-bold">
+                              <Badge variant="outline" className="bg-red-500/15 text-red-700 hover:bg-red-500/25 border-transparent dark:text-red-400 font-bold">
                                 {product.quantity}
                               </Badge>
                             </TableCell>
@@ -597,6 +597,7 @@ export function StockClient({
                   value={addQuantity}
                   onChange={(e) => setAddQuantity(e.target.value)}
                   autoFocus
+                  className="focus-visible:ring-1 focus-visible:ring-fp focus-visible:border-fp focus-visible:ring-offset-0"
                 />
               </div>
             </div>
