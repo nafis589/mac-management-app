@@ -77,7 +77,7 @@ export const productsService = {
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN brands   b ON p.brand_id   = b.id
-        WHERE 1=1
+        WHERE p.status = 'ACTIVE'
       `;
       const params: any[] = [];
 
@@ -117,7 +117,7 @@ export const productsService = {
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN brands b ON p.brand_id = b.id
-        WHERE p.id = ?
+        WHERE p.id = ? AND p.status = 'ACTIVE'
       `;
       const [rows]: any = await pool.query(query, [id]);
       if (rows.length === 0) throw new Error('Product not found');
@@ -132,7 +132,7 @@ export const productsService = {
     try {
       const sql = `
         SELECT * FROM products 
-        WHERE name LIKE ? OR reference LIKE ? OR description LIKE ?
+        WHERE (name LIKE ? OR reference LIKE ? OR description LIKE ?) AND status = 'ACTIVE'
       `;
       const likeTerm = `%${term}%`;
       const [rows] = await pool.query(sql, [likeTerm, likeTerm, likeTerm]);
@@ -213,17 +213,20 @@ export const productsService = {
     try {
       await connection.beginTransaction();
 
-      // Soft delete usually implies setting a status or deleted_at flag. 
-      // However the schema doesn't describe one. So I will log the action and hard delete.
-      
-      // Get product details for logs
+      // Soft delete -> always archive the product
       const [productRows]: any = await connection.query('SELECT * FROM products WHERE id = ?', [id]);
       const product = productRows[0] || null;
 
-      await connection.query('DELETE FROM products WHERE id = ?', [id]);
+      if (!product) {
+        throw new Error('Product not found');
+      }
 
-      if (userId && product) {
-        // According to project.md -> logs: user_id, action, details, created_at
+      await connection.query(
+        'UPDATE products SET status = ?, archived_at = NOW(), archived_by = ? WHERE id = ?',
+        ['ARCHIVED', userId || null, id]
+      );
+      
+      if (userId) {
         await connection.query(
           'INSERT INTO logs (user_id, action, details) VALUES (?, ?, ?)',
           [userId, 'DELETE_PRODUCT', JSON.stringify({ productId: id, reference: product.reference })]
@@ -238,6 +241,103 @@ export const productsService = {
       throw error;
     } finally {
       connection.release();
+    }
+  },
+
+  async getDeleted() {
+    try {
+      const listQuery = `
+        SELECT 
+          p.id, p.name, p.reference, p.photos, p.sale_price, p.purchase_price, p.quantity,
+          c.name AS category, b.name AS brand,
+          p.archived_at, p.archived_by,
+          u.first_name AS archived_by_first_name, u.last_name AS archived_by_last_name
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN brands b ON p.brand_id = b.id
+        LEFT JOIN users u ON p.archived_by = u.id
+        WHERE p.status = 'ARCHIVED'
+        ORDER BY p.archived_at DESC
+      `;
+      const [products] = await pool.query(listQuery);
+
+      const globalStatsQuery = `
+        SELECT 
+          COUNT(*) as total_archived,
+          SUM(quantity) as lost_quantity,
+          SUM(purchase_price * quantity) as lost_stock_value,
+          SUM(sale_price * quantity) as lost_potential_revenue
+        FROM products
+        WHERE status = 'ARCHIVED'
+      `;
+      const [globalStats]: any = await pool.query(globalStatsQuery);
+
+      const dailyStatsQuery = `
+        SELECT 
+          DATE(archived_at) as date,
+          COUNT(*) as count,
+          SUM(purchase_price * quantity) as lost_value
+        FROM products
+        WHERE status = 'ARCHIVED' AND archived_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(archived_at)
+        ORDER BY date DESC
+      `;
+      const [dailyStats] = await pool.query(dailyStatsQuery);
+
+      const monthlyStatsQuery = `
+        SELECT 
+          DATE_FORMAT(archived_at, '%Y-%m') as month,
+          COUNT(*) as count,
+          SUM(purchase_price * quantity) as lost_value
+        FROM products
+        WHERE status = 'ARCHIVED' AND archived_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
+        GROUP BY DATE_FORMAT(archived_at, '%Y-%m')
+        ORDER BY month DESC
+      `;
+      const [monthlyStats] = await pool.query(monthlyStatsQuery);
+
+      const categoryStatsQuery = `
+        SELECT 
+          c.name as category,
+          COUNT(p.id) as count,
+          SUM(p.purchase_price * p.quantity) as lost_value
+        FROM products p
+        LEFT JOIN categories c ON p.category_id = c.id
+        WHERE p.status = 'ARCHIVED'
+        GROUP BY p.category_id, c.name
+        ORDER BY lost_value DESC
+      `;
+      const [categoryStats] = await pool.query(categoryStatsQuery);
+
+      const brandStatsQuery = `
+        SELECT 
+          b.name as brand,
+          COUNT(p.id) as count,
+          SUM(p.purchase_price * p.quantity) as lost_value
+        FROM products p
+        LEFT JOIN brands b ON p.brand_id = b.id
+        WHERE p.status = 'ARCHIVED'
+        GROUP BY p.brand_id, b.name
+        ORDER BY lost_value DESC
+      `;
+      const [brandStats] = await pool.query(brandStatsQuery);
+
+      return {
+        products,
+        global_stats: {
+          total_archived: globalStats[0]?.total_archived || 0,
+          lost_quantity: globalStats[0]?.lost_quantity || 0,
+          lost_stock_value: globalStats[0]?.lost_stock_value || 0,
+          lost_potential_revenue: globalStats[0]?.lost_potential_revenue || 0
+        },
+        daily_stats: dailyStats,
+        monthly_stats: monthlyStats,
+        grouped_by_category: categoryStats,
+        grouped_by_brand: brandStats
+      };
+    } catch (error) {
+      logger.error('productsService.getDeleted error:', error);
+      throw error;
     }
   },
 

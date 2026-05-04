@@ -1,4 +1,5 @@
 import {
+  Archive,
   BarChart3,
   Box,
   LayoutDashboard,
@@ -59,6 +60,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Produits",
         url: "/produits",
         icon: Package,
+      },
+      {
+        title: "Produits Archivés",
+        url: "/produits/archives",
+        icon: Archive,
+        roles: ["admin"],
       },
       {
         title: "Stock",

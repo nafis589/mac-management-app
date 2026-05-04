@@ -10,6 +10,7 @@ export const stockService = {
           COALESCE(SUM(purchase_price * quantity), 0) as stockValue,
           SUM(CASE WHEN quantity < min_stock THEN 1 ELSE 0 END) as lowStockCount
         FROM products
+        WHERE status = 'ACTIVE'
       `;
       const [rows]: any = await pool.query(query);
       return rows[0];
@@ -26,7 +27,7 @@ export const stockService = {
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.id
         LEFT JOIN brands b ON p.brand_id = b.id
-        WHERE p.quantity < p.min_stock
+        WHERE p.quantity < p.min_stock AND p.status = 'ACTIVE'
         ORDER BY p.quantity ASC
       `;
       const [rows] = await pool.query(query);

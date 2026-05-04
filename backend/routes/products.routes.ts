@@ -71,6 +71,15 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+router.get('/deleted', async (req, res, next) => {
+  try {
+    const deletedData = await productsService.getDeleted();
+    res.json({ success: true, data: deletedData });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const product = await productsService.getById(req.params.id as string);
@@ -90,6 +99,7 @@ router.post('/', upload.array('photos', 5), async (req: Request, res: Response, 
     }
 
     // 1. Créer le produit
+    value.user_id = (req as any).user?.id || 1;
     const result = await productsService.create(value);
 
     // 2. Si des photos sont jointes, les uploader immédiatement
@@ -113,6 +123,7 @@ router.patch('/:id', upload.array('photos', 5), async (req: Request, res: Respon
       return;
     }
 
+    value.user_id = (req as any).user?.id || 1;
     await productsService.update(req.params.id as string, value);
 
     // Upload de nouvelles photos si présentes
@@ -129,7 +140,7 @@ router.patch('/:id', upload.array('photos', 5), async (req: Request, res: Respon
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.id || 1;
     await productsService.delete(req.params.id as string, userId);
     res.json({ success: true, message: 'Product deleted successfully' });
   } catch (error) {

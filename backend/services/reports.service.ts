@@ -202,18 +202,18 @@ export const reportsService = {
         `SELECT p.id, p.name, p.reference, p.quantity as current_stock
          FROM products p
          LEFT JOIN sale_items si ON p.id = si.product_id
-         WHERE si.id IS NULL`
+         WHERE si.id IS NULL AND p.status = 'ACTIVE'`
       );
 
       const [stockValue]: any = await pool.query(
         `SELECT COALESCE(SUM(purchase_price * quantity), 0) as total_value
-         FROM products`
+         FROM products WHERE status = 'ACTIVE'`
       );
 
       const [outOfStock]: any = await pool.query(
         `SELECT id, name, reference
          FROM products
-         WHERE quantity = 0`
+         WHERE quantity = 0 AND status = 'ACTIVE'`
       );
 
       return {

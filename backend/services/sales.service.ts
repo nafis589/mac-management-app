@@ -37,7 +37,7 @@ export const salesService = {
       for (const item of items) {
         // Check stock
         const [productRows]: any = await connection.query(
-          'SELECT quantity FROM products WHERE id = ? FOR UPDATE',
+          'SELECT quantity FROM products WHERE id = ? AND status = \'ACTIVE\' FOR UPDATE',
           [item.productId || item.product_id]
         );
         

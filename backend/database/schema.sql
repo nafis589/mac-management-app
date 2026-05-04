@@ -51,10 +51,14 @@ CREATE TABLE IF NOT EXISTS products (
     min_stock INT NOT NULL DEFAULT 2,
     description TEXT,
     photos JSON,
+    status ENUM('ACTIVE', 'ARCHIVED') NOT NULL DEFAULT 'ACTIVE',
+    archived_at TIMESTAMP NULL,
+    archived_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
     CONSTRAINT fk_product_brand FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_product_archived_by FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_product_reference (reference),
     INDEX idx_product_created_at (created_at)
 );
