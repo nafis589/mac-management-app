@@ -47,20 +47,12 @@ export function LoginForm() {
   async function onSubmit(values: LoginValues) {
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: values.username,
-          password: values.password,
-        }),
-      });
+      const { login } = await import("@/lib/api");
+      const user = await login(values.username, values.password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!user) {
         toast.error("Erreur de connexion", {
-          description: data.error || data.message || "Identifiants invalides",
+          description: "Identifiants invalides",
         });
         setLoading(false);
         return;
@@ -68,11 +60,8 @@ export function LoginForm() {
 
       toast.success("Connexion réussie !");
 
-      const user = data.data || data.user;
-      const token = data.token || "";
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("fc_token", "electron-session");
+      localStorage.setItem("fc_user", JSON.stringify(user));
 
       // All roles go to root — (admin) is a route group, not a URL segment
       // The sidebar handles which tabs are visible per role

@@ -96,6 +96,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import * as api from "@/lib/api";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface User {
@@ -139,74 +140,40 @@ type CreateUserFormValues = z.infer<typeof createUserSchema>;
 type UpdateUserFormValues = z.infer<typeof updateUserSchema>;
 type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
 
-const API_BASE = "http://localhost:4000/api";
-
-// ─── API Helpers ─────────────────────────────────────────────────────────────
+// ─── API Helpers (use IPC-aware api.ts) ──────────────────────────────────────
 async function fetchUsers(): Promise<User[]> {
-  const response = await fetch(`${API_BASE}/users`);
-  if (!response.ok) throw new Error("Erreur lors du chargement des utilisateurs");
-  const data = await response.json();
-  return data.data;
+  return api.getUsers();
 }
 
 async function createUser(userData: CreateUserFormValues): Promise<User> {
-  const response = await fetch(`${API_BASE}/users`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Erreur lors de la création");
-  return data.data;
+  return api.createUser(userData);
 }
 
 async function updateUser(id: number, userData: UpdateUserFormValues): Promise<User> {
-  const response = await fetch(`${API_BASE}/users/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Erreur lors de la modification");
-  return data.data;
+  return api.updateUser(id, userData);
 }
 
 async function toggleUserStatus(id: number): Promise<{ success: boolean; status: string }> {
-  const response = await fetch(`${API_BASE}/users/${id}/toggle-status`, {
-    method: "PATCH",
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Erreur lors du changement de statut");
-  return data;
+  return api.toggleUserStatus(id);
 }
 
 async function resetUserPassword(
   userId: number,
   newPassword: string
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}/auth/reset-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ userId, newPassword }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Erreur lors du reset du mot de passe");
+  return api.resetPassword(userId, newPassword);
 }
 
 async function deleteUserApi(id: number): Promise<void> {
   let currentUserId = 1;
-  const userStr = localStorage.getItem("user");
+  const userStr = localStorage.getItem("fc_user");
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
       currentUserId = user.id;
     } catch (e) { }
   }
-  const response = await fetch(`${API_BASE}/users/${id}?currentUserId=${currentUserId}`, {
-    method: "DELETE",
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || "Erreur lors de la suppression");
+  return api.deleteUser(id, currentUserId);
 }
 
 // ─── Columns Definition ─────────────────────────────────────────────────────
@@ -1244,11 +1211,11 @@ export default function UtilisateursPage() {
   const [isAuthorized, setIsAuthorized] = React.useState(false);
 
   React.useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const userStr = localStorage.getItem("fc_user");
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user.role?.toLowerCase() !== "admin") {
+        if (user.role?.toUpperCase() !== "ADMIN") {
           router.replace("/");
         } else {
           setIsAuthorized(true);

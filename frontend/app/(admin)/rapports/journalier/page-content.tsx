@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import DailyReportClient from "./client-page";
+import { getDailyReport } from "@/lib/api";
 
 export default function DailyReportPageContent() {
   const searchParams = useSearchParams();
@@ -15,13 +16,8 @@ export default function DailyReportPageContent() {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4000/api/reports/daily?date=${date}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setReportData(data.data);
-          }
-        }
+        const data = await getDailyReport(date);
+        setReportData(data);
       } catch (err) {
         console.error("Erreur chargement rapport journalier", err);
       } finally {

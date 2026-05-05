@@ -28,7 +28,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   React.useEffect(() => {
     try {
-      const stored = localStorage.getItem("user");
+      const stored = localStorage.getItem("fc_user");
       if (stored) {
         const parsed = JSON.parse(stored);
         setCurrentUser({

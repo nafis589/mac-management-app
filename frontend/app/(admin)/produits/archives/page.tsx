@@ -62,6 +62,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import Link from "next/link"
+import { getDeletedProducts } from "@/lib/api"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ArchivedProduct {
@@ -113,7 +114,7 @@ interface DeletedData {
   grouped_by_brand: GroupStat[]
 }
 
-const API_BASE = "http://localhost:4000/api"
+// API calls go through the IPC-aware api.ts module
 
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XOF", minimumFractionDigits: 0 })
@@ -129,7 +130,7 @@ export default function ArchivesPage() {
 
   // Auth check
   React.useEffect(() => {
-    const userStr = localStorage.getItem("user")
+    const userStr = localStorage.getItem("fc_user")
     if (userStr) {
       try {
         const user = JSON.parse(userStr)
@@ -151,10 +152,8 @@ export default function ArchivesPage() {
     if (!isAuthorized) return
     const load = async () => {
       try {
-        const res = await fetch(`${API_BASE}/products/deleted`)
-        if (!res.ok) throw new Error("Erreur chargement")
-        const json = await res.json()
-        setData(json.data)
+        const result = await getDeletedProducts()
+        setData(result)
       } catch (e: any) {
         toast.error(e.message || "Impossible de charger les archives")
       } finally {

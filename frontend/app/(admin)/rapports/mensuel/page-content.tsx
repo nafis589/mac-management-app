@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import MonthlyReportClient from "./client-page";
+import { getMonthlyReport } from "@/lib/api";
 
 export default function MonthlyReportPageContent() {
   const searchParams = useSearchParams();
@@ -17,13 +18,8 @@ export default function MonthlyReportPageContent() {
     const fetchReport = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4000/api/reports/monthly?month=${month}&year=${year}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setReportData(data.data);
-          }
-        }
+        const data = await getMonthlyReport(Number(month), Number(year));
+        setReportData(data);
       } catch (err) {
         console.error("Erreur chargement rapport mensuel", err);
       } finally {

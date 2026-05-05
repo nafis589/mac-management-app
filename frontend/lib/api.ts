@@ -14,7 +14,15 @@
 // DÉTECTION ENVIRONNEMENT
 // ═══════════════════════════════════════════
 
-const isElectron = () => typeof window !== "undefined" && !!(window as any).electron;
+const isElectron = () => {
+  if (typeof window !== "undefined") {
+    const hasElectron = !!(window as any).electron;
+    const isElectronAgent = navigator.userAgent.toLowerCase().includes("electron");
+    console.log("[DEBUG API] isElectron check:", { hasElectron, isElectronAgent });
+    return hasElectron || isElectronAgent;
+  }
+  return false;
+};
 
 const API_BASE = "http://localhost:4000/api";
 
