@@ -69,8 +69,14 @@ export default function NouveauProduitPage() {
     control,
     formState: { errors }
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productSchema) as any,
     defaultValues: {
+      name: "",
+      category_id: "",
+      brand_id: "",
+      sale_price: 0,
+      purchase_price: 0,
+      quantity: 0,
       condition: "EXCELLENT",
       in_stock: true,
       min_stock: 2,

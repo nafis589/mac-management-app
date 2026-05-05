@@ -20,7 +20,7 @@ import {
 import { Area, CartesianGrid, ComposedChart, XAxis, YAxis, Tooltip } from "recharts";
 import { toast } from "sonner";
 
-import { cn, formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

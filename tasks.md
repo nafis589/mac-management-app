@@ -415,7 +415,7 @@ module.exports = {
 
 ---
 
-#### TASK-027 🔄 Refactoriser Backend (Supprimer Express)
+#### TASK-027 ✅ Refactoriser Backend (Supprimer Express)
 **Priorité** : Critique  
 **Durée** : 2h  
 **Description** :
@@ -434,7 +434,7 @@ module.exports = {
 
 ---
 
-#### TASK-028 🔄 Installer & Configurer Electron
+#### TASK-028 ✅ Installer & Configurer Electron
 **Priorité** : Critique  
 **Durée** : 1.5h  
 **Description** :
@@ -461,7 +461,7 @@ module.exports = {
 
 ---
 
-#### TASK-029 🔄 Adapter Frontend pour IPC
+#### TASK-029 ✅ Adapter Frontend pour IPC
 **Priorité** : Critique  
 **Durée** : 3h  
 **Description** :
@@ -474,7 +474,7 @@ module.exports = {
 
 ---
 
-#### TASK-030 🔄 Créer Tous les IPC Handlers
+#### TASK-030 ✅ Créer Tous les IPC Handlers
 **Priorité** : Critique  
 **Durée** : 4h  
 **Description** :
@@ -489,14 +489,15 @@ module.exports = {
 
 ---
 
-#### TASK-031 🔄 MySQL Portable (Embarqué)
+#### TASK-031 ✅ MySQL Portable (Embarqué) -> SQLite
 **Priorité** : Haute  
 **Durée** : 2h  
 **Description** :
-- Télécharger MySQL portable pour Mac
-- Configurer connexion vers DB embarquée (chemin relatif)
-- Modifier `config/database.ts` pour détecter environnement
-- Copier schema.sql et seeds dans package Electron
+- Remplacer mysql2 par better-sqlite3 pour Electron
+- Adapter tous services pour SQLite syntax
+- Créer schema SQLite (AUTOINCREMENT au lieu d'AUTO_INCREMENT)
+- Script export MySQL → SQLite
+- Config database.js adaptatif (Détecter environnement Electron vs Web)
 
 ---
 

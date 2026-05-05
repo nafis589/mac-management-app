@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -140,8 +140,9 @@ function KpiCard({
 /* ─────────────────────────────────────────────
    Page
 ───────────────────────────────────────────── */
-export default function ProductDetailPage() {
-  const params = useParams();
+export default function ProductDetailPageContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') as string;
   const router = useRouter();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,11 +156,11 @@ export default function ProductDetailPage() {
     }
     loadProduct();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id]);
+  }, [id]);
 
   const loadProduct = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/products/${params.id}`);
+      const res = await fetch(`http://localhost:4000/api/products/${id}`);
       if (!res.ok) throw new Error('Produit non trouvé');
       const json = await res.json();
       const d = json.data;
@@ -178,7 +179,7 @@ export default function ProductDetailPage() {
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/products/${params.id}`, {
+      const res = await fetch(`http://localhost:4000/api/products/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error();
@@ -265,7 +266,7 @@ export default function ProductDetailPage() {
         {!isViewOnly && (
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push(`/produits/${product.id}/modifier`)}
+              onClick={() => router.push(`/produits/detail/modifier?id=${product.id}`)}
               className="inline-flex items-center gap-2 bg-white text-fp border border-fp/20 hover:bg-fp/10 text-sm font-medium rounded-lg px-4 py-2 shadow-sm transition-colors"
             >
               <Pencil size={15} strokeWidth={2} />

@@ -1,7 +1,14 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@/lib/types/auth";
+export interface User {
+  id: string | number;
+  username: string;
+  first_name?: string;
+  last_name?: string;
+  role: "ADMIN" | "CASHIER";
+  status?: "ACTIVE" | "INACTIVE";
+}
 import { useRouter } from "next/navigation";
 
 interface AuthContextType {

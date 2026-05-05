@@ -156,7 +156,7 @@ export function ProductGrid() {
                   {/* Image */}
                   <div 
                     className="aspect-[4/3] bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
-                    onClick={() => router.push(`/produits/${product.id}?viewOnly=true`)}
+                    onClick={() => router.push(`/produits/detail?id=${product.id}&viewOnly=true`)}
                   >
 
                     {photoUrl ? (

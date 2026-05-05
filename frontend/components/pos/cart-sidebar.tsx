@@ -106,7 +106,7 @@ export function CartSidebar({ onEncaisser }: CartSidebarProps) {
                   {/* Thumbnail */}
                   <div 
                     className="h-16 w-16 rounded-lg bg-muted overflow-hidden shrink-0 border border-border/40 cursor-pointer"
-                    onClick={() => router.push(`/produits/${item.id}?viewOnly=true`)}
+                    onClick={() => router.push(`/produits/detail?id=${item.id}&viewOnly=true`)}
                   >
                     {photoUrl ? (
                       <img

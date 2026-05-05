@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.fripperie.luxe",
+  "productName": "Friperie de Luxe",
+  "directories": {
+    "output": "dist"
+  },
+  "files": [
+    "electron/**/*",
+    "backend/**/*",
+    "frontend/out/**/*",
+    "!backend/node_modules/**/*",
+    "!backend/tests/**/*",
+    "!backend/coverage/**/*",
+    "!backend/logs/**/*",
+    "!**/.*"
+  ],
+  "extraResources": [
+    {
+      "from": "uploads/",
+      "to": "uploads/",
+      "filter": ["**/*"]
+    }
+  ],
+  "mac": {
+    "target": "dmg",
+    "icon": "build/icon.icns",
+    "category": "public.app-category.business"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "build/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  }
+}

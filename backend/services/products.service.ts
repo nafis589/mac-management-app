@@ -272,7 +272,16 @@ export const productsService = {
       `;
       const [globalStats]: any = await pool.query(globalStatsQuery);
 
-      const dailyStatsQuery = `
+      const dailyStatsQuery = pool.isSQLite ? `
+        SELECT 
+          date(archived_at) as date,
+          COUNT(*) as count,
+          SUM(purchase_price * quantity) as lost_value
+        FROM products
+        WHERE status = 'ARCHIVED' AND archived_at >= date('now', '-7 days')
+        GROUP BY date(archived_at)
+        ORDER BY date DESC
+      ` : `
         SELECT 
           DATE(archived_at) as date,
           COUNT(*) as count,
@@ -284,7 +293,16 @@ export const productsService = {
       `;
       const [dailyStats] = await pool.query(dailyStatsQuery);
 
-      const monthlyStatsQuery = `
+      const monthlyStatsQuery = pool.isSQLite ? `
+        SELECT 
+          strftime('%Y-%m', archived_at) as month,
+          COUNT(*) as count,
+          SUM(purchase_price * quantity) as lost_value
+        FROM products
+        WHERE status = 'ARCHIVED' AND archived_at >= date('now', '-12 months')
+        GROUP BY strftime('%Y-%m', archived_at)
+        ORDER BY month DESC
+      ` : `
         SELECT 
           DATE_FORMAT(archived_at, '%Y-%m') as month,
           COUNT(*) as count,

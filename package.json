@@ -1,0 +1,24 @@
+{
+  "name": "friperie-de-luxe",
+  "version": "1.0.0",
+  "description": "Application de gestion pour boutique de friperie de luxe",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "electron": "electron .",
+    "electron:dev": "electron .",
+    "build:frontend": "cd frontend && npm run build",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "author": "Friperie de Luxe",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^36.3.1",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "electron-serve": "^3.0.1"
+  }
+}

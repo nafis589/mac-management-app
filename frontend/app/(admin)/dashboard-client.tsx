@@ -26,20 +26,47 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function DashboardClient({
-  dailyReport,
-  monthlyReport,
-  recentSales,
-  lowStockProducts
-}: {
-  dailyReport: any;
-  monthlyReport: any;
-  recentSales: any[];
-  lowStockProducts: any[];
-}) {
+export default function DashboardClient() {
   const router = useRouter();
   const currentDate = new Date();
   const todayDay = currentDate.getDate();
+
+  const [dailyReport, setDailyReport] = React.useState<any>(null);
+  const [monthlyReport, setMonthlyReport] = React.useState<any>(null);
+  const [recentSales, setRecentSales] = React.useState<any[]>([]);
+  const [lowStockProducts, setLowStockProducts] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const month = (currentDate.getMonth() + 1).toString();
+        const year = currentDate.getFullYear().toString();
+
+        const [dailyRes, monthlyRes, salesRes, productsRes] = await Promise.all([
+          fetch(`http://localhost:4000/api/reports/daily?date=${today}`),
+          fetch(`http://localhost:4000/api/reports/monthly?month=${month}&year=${year}`),
+          fetch(`http://localhost:4000/api/sales?limit=5&include_items=true`),
+          fetch(`http://localhost:4000/api/products`)
+        ]);
+
+        const dailyData = dailyRes.ok ? await dailyRes.json() : null;
+        const monthlyData = monthlyRes.ok ? await monthlyRes.json() : null;
+        const salesData = salesRes.ok ? await salesRes.json() : null;
+        const productsData = productsRes.ok ? await productsRes.json() : null;
+
+        setDailyReport(dailyData?.success ? dailyData.data : null);
+        setMonthlyReport(monthlyData?.success ? monthlyData.data : null);
+        setRecentSales(salesData?.success ? salesData.data : []);
+        
+        const allProducts = productsData?.success ? productsData.data : [];
+        setLowStockProducts(allProducts.filter((p: any) => p.quantity <= 5));
+      } catch (err) {
+        console.error("Erreur de chargement", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Actualisation automatique toutes les 30 secondes
   React.useEffect(() => {

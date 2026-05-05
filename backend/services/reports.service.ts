@@ -8,8 +8,7 @@ export const reportsService = {
    */
   async getDailyReport(date: string) {
     try {
-      const [stats]: any = await pool.query(
-        `SELECT 
+      const dailyStatsQuery = pool.isSQLite ? `SELECT 
           COUNT(*) as nbSales,
           COALESCE(SUM(s.final_amount), 0) as totalRevenue,
           COALESCE(SUM(s.final_amount - (
@@ -19,15 +18,29 @@ export const reportsService = {
             WHERE si.sale_id = s.id
           )), 0) as profit
          FROM sales s
-         WHERE DATE(s.created_at) = ? AND s.cancelled_at IS NULL`,
-        [date]
-      );
+         WHERE date(s.created_at) = ? AND s.cancelled_at IS NULL` : `SELECT 
+          COUNT(*) as nbSales,
+          COALESCE(SUM(s.final_amount), 0) as totalRevenue,
+          COALESCE(SUM(s.final_amount - (
+            SELECT COALESCE(SUM(p.purchase_price * si.quantity), 0)
+            FROM sale_items si
+            JOIN products p ON si.product_id = p.id
+            WHERE si.sale_id = s.id
+          )), 0) as profit
+         FROM sales s
+         WHERE DATE(s.created_at) = ? AND s.cancelled_at IS NULL`;
+         
+      const [stats]: any = await pool.query(dailyStatsQuery, [date]);
 
       // CA par mode paiement
       // Assuming payment_methods is an array of objects: [{ "method": "CASH", "amount": 100 }]
       // If it's array of strings, we'll adapt. Let's try to aggregate via JSON_TABLE
-      const [payments]: any = await pool.query(
-        `SELECT 
+      const paymentsQuery = pool.isSQLite ? `SELECT 
+           json_extract(value, '$.method') as method,
+           SUM(json_extract(value, '$.amount')) as total
+         FROM sales s, json_each(s.payment_methods)
+         WHERE date(s.created_at) = ? AND s.cancelled_at IS NULL
+         GROUP BY json_extract(value, '$.method')` : `SELECT 
            jt.method,
            SUM(jt.amount) as total
          FROM sales s,
@@ -39,16 +52,20 @@ export const reportsService = {
            )
          ) AS jt
          WHERE DATE(s.created_at) = ? AND s.cancelled_at IS NULL
-         GROUP BY jt.method`,
-        [date]
-      );
+         GROUP BY jt.method`;
+         
+      const [payments]: any = await pool.query(paymentsQuery, [date]);
       
       // Fallback si la requête ci-dessus retourne null/method=null 
       // (par exemple si payment_methods est un tableau de strings simples)
       let revenueByPayment = payments;
       if (payments.length > 0 && payments[0].method === null) {
-          const [altPayments]: any = await pool.query(
-            `SELECT 
+          const altPaymentsQuery = pool.isSQLite ? `SELECT 
+               value as method,
+               SUM(s.final_amount) as total
+             FROM sales s, json_each(s.payment_methods)
+             WHERE date(s.created_at) = ? AND s.cancelled_at IS NULL
+             GROUP BY value` : `SELECT 
                jt.method,
                SUM(s.final_amount) as total
              FROM sales s,
@@ -59,14 +76,22 @@ export const reportsService = {
                )
              ) AS jt
              WHERE DATE(s.created_at) = ? AND s.cancelled_at IS NULL
-             GROUP BY jt.method`,
-            [date]
-          );
+             GROUP BY jt.method`;
+             
+          const [altPayments]: any = await pool.query(altPaymentsQuery, [date]);
           revenueByPayment = altPayments;
       }
 
-      const [topItems]: any = await pool.query(
-        `SELECT 
+      const topItemsQuery = pool.isSQLite ? `SELECT 
+           p.id, p.name, p.reference,
+           SUM(si.quantity) as quantity_sold,
+           SUM(si.quantity * si.unit_price) as total_revenue
+         FROM sale_items si
+         JOIN sales s ON si.sale_id = s.id
+         JOIN products p ON si.product_id = p.id
+         WHERE date(s.created_at) = ? AND s.cancelled_at IS NULL
+         GROUP BY p.id, p.name, p.reference
+         ORDER BY quantity_sold DESC` : `SELECT 
            p.id, p.name, p.reference,
            SUM(si.quantity) as quantity_sold,
            SUM(si.quantity * si.unit_price) as total_revenue
@@ -75,20 +100,25 @@ export const reportsService = {
          JOIN products p ON si.product_id = p.id
          WHERE DATE(s.created_at) = ? AND s.cancelled_at IS NULL
          GROUP BY p.id, p.name, p.reference
-         ORDER BY quantity_sold DESC`,
-        [date]
-      );
+         ORDER BY quantity_sold DESC`;
+         
+      const [topItems]: any = await pool.query(topItemsQuery, [date]);
 
-      const [hourlySales]: any = await pool.query(
-        `SELECT 
+      const hourlySalesQuery = pool.isSQLite ? `SELECT 
+           cast(strftime('%H', created_at) as integer) as hour,
+           COALESCE(SUM(final_amount), 0) as revenue
+         FROM sales
+         WHERE date(created_at) = ? AND cancelled_at IS NULL
+         GROUP BY hour
+         ORDER BY hour ASC` : `SELECT 
            HOUR(created_at) as hour,
            COALESCE(SUM(final_amount), 0) as revenue
          FROM sales
          WHERE DATE(created_at) = ? AND cancelled_at IS NULL
          GROUP BY HOUR(created_at)
-         ORDER BY hour ASC`,
-        [date]
-      );
+         ORDER BY hour ASC`;
+         
+      const [hourlySales]: any = await pool.query(hourlySalesQuery, [date]);
 
       return {
         nbSales: stats[0].nbSales || 0,
@@ -109,51 +139,77 @@ export const reportsService = {
    */
   async getMonthlyReport(month: number, year: number) {
     try {
-      const [totalResult]: any = await pool.query(
-        `SELECT COALESCE(SUM(final_amount), 0) as totalRevenue
+      const monthStr = month.toString().padStart(2, '0');
+      const yearStr = year.toString();
+      
+      const totalQuery = pool.isSQLite ? `SELECT COALESCE(SUM(final_amount), 0) as totalRevenue
          FROM sales
-         WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND cancelled_at IS NULL`,
-        [month, year]
-      );
+         WHERE strftime('%m', created_at) = ? AND strftime('%Y', created_at) = ? AND cancelled_at IS NULL` : `SELECT COALESCE(SUM(final_amount), 0) as totalRevenue
+         FROM sales
+         WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND cancelled_at IS NULL`;
+         
+      const [totalResult]: any = await pool.query(totalQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
-      const [prevResult]: any = await pool.query(
-        `SELECT COALESCE(SUM(final_amount), 0) as prevRevenue
+      const prevQuery = pool.isSQLite ? `SELECT COALESCE(SUM(final_amount), 0) as prevRevenue
+         FROM sales
+         WHERE strftime('%m', created_at) = strftime('%m', date(printf('%04d-%02d-01', ?, ?), '-1 month'))
+         AND strftime('%Y', created_at) = strftime('%Y', date(printf('%04d-%02d-01', ?, ?), '-1 month'))
+         AND cancelled_at IS NULL` : `SELECT COALESCE(SUM(final_amount), 0) as prevRevenue
          FROM sales
          WHERE MONTH(created_at) = MONTH(DATE_SUB(CONCAT(?, '-', LPAD(?, 2, '0'), '-01'), INTERVAL 1 MONTH))
          AND YEAR(created_at) = YEAR(DATE_SUB(CONCAT(?, '-', LPAD(?, 2, '0'), '-01'), INTERVAL 1 MONTH))
-         AND cancelled_at IS NULL`,
-        [year, month, year, month]
-      );
+         AND cancelled_at IS NULL`;
+         
+      const [prevResult]: any = await pool.query(prevQuery, [year, month, year, month]);
 
       const currentRev = totalResult[0].totalRevenue;
       const prevRev = prevResult[0].prevRevenue;
       const evolutionPct = prevRev > 0 ? ((currentRev - prevRev) / prevRev) * 100 : 0;
 
-      const [weeklyData]: any = await pool.query(
-        `SELECT 
+      const weeklyQuery = pool.isSQLite ? `SELECT 
+           cast(strftime('%W', created_at) as integer) as week_number,
+           COALESCE(SUM(final_amount), 0) as revenue
+         FROM sales
+         WHERE strftime('%m', created_at) = ? AND strftime('%Y', created_at) = ? AND cancelled_at IS NULL
+         GROUP BY week_number
+         ORDER BY week_number ASC` : `SELECT 
            WEEK(created_at) as week_number,
            COALESCE(SUM(final_amount), 0) as revenue
          FROM sales
          WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND cancelled_at IS NULL
          GROUP BY WEEK(created_at)
-         ORDER BY week_number ASC`,
-        [month, year]
-      );
+         ORDER BY week_number ASC`;
+         
+      const [weeklyData]: any = await pool.query(weeklyQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
-      const [dailySales]: any = await pool.query(
-        `SELECT 
+      const dailyQuery = pool.isSQLite ? `SELECT 
+           cast(strftime('%d', created_at) as integer) as day,
+           COUNT(*) as nb_sales,
+           COALESCE(SUM(final_amount), 0) as revenue
+         FROM sales
+         WHERE strftime('%m', created_at) = ? AND strftime('%Y', created_at) = ? AND cancelled_at IS NULL
+         GROUP BY day
+         ORDER BY day ASC` : `SELECT 
            DAY(created_at) as day,
            COUNT(*) as nb_sales,
            COALESCE(SUM(final_amount), 0) as revenue
          FROM sales
          WHERE MONTH(created_at) = ? AND YEAR(created_at) = ? AND cancelled_at IS NULL
          GROUP BY DAY(created_at)
-         ORDER BY day ASC`,
-        [month, year]
-      );
+         ORDER BY day ASC`;
+         
+      const [dailySales]: any = await pool.query(dailyQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
-      const [topProducts]: any = await pool.query(
-        `SELECT 
+      const topProductsQuery = pool.isSQLite ? `SELECT 
+           p.id, p.name, p.reference,
+           SUM(si.quantity) as total_quantity
+         FROM sale_items si
+         JOIN sales s ON si.sale_id = s.id
+         JOIN products p ON si.product_id = p.id
+         WHERE strftime('%m', s.created_at) = ? AND strftime('%Y', s.created_at) = ? AND s.cancelled_at IS NULL
+         GROUP BY p.id, p.name, p.reference
+         ORDER BY total_quantity DESC
+         LIMIT 10` : `SELECT 
            p.id, p.name, p.reference,
            SUM(si.quantity) as total_quantity
          FROM sale_items si
@@ -162,9 +218,9 @@ export const reportsService = {
          WHERE MONTH(s.created_at) = ? AND YEAR(s.created_at) = ? AND s.cancelled_at IS NULL
          GROUP BY p.id, p.name, p.reference
          ORDER BY total_quantity DESC
-         LIMIT 10`,
-        [month, year]
-      );
+         LIMIT 10`;
+         
+      const [topProducts]: any = await pool.query(topProductsQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
       return {
         totalRevenue: currentRev,
@@ -233,8 +289,15 @@ export const reportsService = {
    */
   async getCashierReport(userId: number | string, startDate: string, endDate: string) {
     try {
-      const [cashierStats]: any = await pool.query(
-        `SELECT 
+      const statsQuery = pool.isSQLite ? `SELECT 
+           COUNT(*) as nbSales,
+           COALESCE(SUM(final_amount), 0) as totalRevenue,
+           COALESCE(AVG(final_amount), 0) as averageBasket
+         FROM sales
+         WHERE cashier_id = ? 
+           AND date(created_at) >= ? 
+           AND date(created_at) <= ?
+           AND cancelled_at IS NULL` : `SELECT 
            COUNT(*) as nbSales,
            COALESCE(SUM(final_amount), 0) as totalRevenue,
            COALESCE(AVG(final_amount), 0) as averageBasket
@@ -242,21 +305,26 @@ export const reportsService = {
          WHERE cashier_id = ? 
            AND DATE(created_at) >= ? 
            AND DATE(created_at) <= ?
-           AND cancelled_at IS NULL`,
-        [userId, startDate, endDate]
-      );
+           AND cancelled_at IS NULL`;
+           
+      const [cashierStats]: any = await pool.query(statsQuery, [userId, startDate, endDate]);
 
       // Comparaison avec autres caissières (ranking)
-      const [rankings]: any = await pool.query(
-        `SELECT 
+      const rankQuery = pool.isSQLite ? `SELECT 
+           cashier_id,
+           COALESCE(SUM(final_amount), 0) as total
+         FROM sales
+         WHERE date(created_at) >= ? AND date(created_at) <= ? AND cancelled_at IS NULL
+         GROUP BY cashier_id
+         ORDER BY total DESC` : `SELECT 
            cashier_id,
            COALESCE(SUM(final_amount), 0) as total
          FROM sales
          WHERE DATE(created_at) >= ? AND DATE(created_at) <= ? AND cancelled_at IS NULL
          GROUP BY cashier_id
-         ORDER BY total DESC`,
-        [startDate, endDate]
-      );
+         ORDER BY total DESC`;
+         
+      const [rankings]: any = await pool.query(rankQuery, [startDate, endDate]);
 
       let rank = 0;
       for (let i = 0; i < rankings.length; i++) {

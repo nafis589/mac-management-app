@@ -208,10 +208,10 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href={`/produits/${row.original.id}`}>Voir détails</Link>
+                  <Link href={`/produits/detail?id=${row.original.id}`}>Voir détails</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={`/produits/${row.original.id}/modifier`}>Modifier ce produit</Link>
+                  <Link href={`/produits/detail/modifier?id=${row.original.id}`}>Modifier ce produit</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

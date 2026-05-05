@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Upload, X, ArrowLeft, PlusCircle } from "lucide-react";
 import Link from "next/link";
@@ -47,10 +47,10 @@ const productSchema = z.object({
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
-export default function ModifierProduitPage() {
+export default function ModifierProduitPageContent() {
   const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id') as string;
 
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -78,8 +78,14 @@ export default function ModifierProduitPage() {
     control,
     formState: { errors }
   } = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(productSchema) as any,
     defaultValues: {
+      name: "",
+      category_id: "",
+      brand_id: "",
+      sale_price: 0,
+      purchase_price: 0,
+      quantity: 0,
       condition: "EXCELLENT",
       in_stock: true,
       min_stock: 2,

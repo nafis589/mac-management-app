@@ -26,14 +26,19 @@ export class AuthService {
       const lockDurationMs = CONSTANTS.LOCKOUT_DURATION_MS || 5 * 60 * 1000;
       const maxAttempts = CONSTANTS.MAX_LOGIN_ATTEMPTS || 5;
 
-      const [rows]: any = await db.query(
-        `SELECT COUNT(*) as attempts 
-         FROM logs 
-         WHERE action = 'LOGIN_FAILED' 
-         AND JSON_EXTRACT(details, '$.username') = ?
-         AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)`,
-        [username, Math.floor(lockDurationMs / 1000)]
-      );
+      const sql = db.isSQLite
+        ? `SELECT COUNT(*) as attempts 
+           FROM logs 
+           WHERE action = 'LOGIN_FAILED' 
+           AND json_extract(details, '$.username') = ?
+           AND created_at > datetime('now', '-' || ? || ' seconds')`
+        : `SELECT COUNT(*) as attempts 
+           FROM logs 
+           WHERE action = 'LOGIN_FAILED' 
+           AND JSON_EXTRACT(details, '$.username') = ?
+           AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)`;
+
+      const [rows]: any = await db.query(sql, [username, Math.floor(lockDurationMs / 1000)]);
       
       const attempts = rows[0]?.attempts || 0;
       return attempts >= maxAttempts;
