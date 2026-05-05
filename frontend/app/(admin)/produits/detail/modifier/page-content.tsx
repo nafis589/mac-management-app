@@ -12,6 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { AddCategoryModal } from "@/components/AddCategoryModal";
 import { AddBrandModal } from "@/components/AddBrandModal";
+import { 
+  getProductById, 
+  getCategories, 
+  getBrands, 
+  updateProduct, 
+  uploadProductPhotos, 
+  deleteProductPhoto,
+  resolveImageUrl 
+} from "@/lib/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -96,16 +105,16 @@ export default function ModifierProduitPageContent() {
   useEffect(() => {
     // Load product details, categories and brands
     Promise.all([
-      fetch(`http://localhost:4000/api/products/${id}`).then(res => res.ok ? res.json() : { data: null }).catch(() => ({ data: null })),
-      fetch("http://localhost:4000/api/categories").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] })),
-      fetch("http://localhost:4000/api/brands").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] }))
+      getProductById(id).catch(() => null),
+      getCategories().catch(() => []),
+      getBrands().catch(() => [])
     ]).then(([productData, catData, brandData]) => {
 
-      if (catData?.data) setCategories(catData.data);
-      if (brandData?.data) setBrands(brandData.data);
+      if (catData) setCategories(catData);
+      if (brandData) setBrands(brandData);
 
-      if (productData?.data) {
-        const prod = productData.data;
+      if (productData) {
+        const prod = productData;
         reset({
           name: prod.name || "",
           reference: prod.reference || "",
@@ -168,14 +177,8 @@ export default function ModifierProduitPageContent() {
     const index = photoToDelete;
     
     try {
-      const res = await fetch(`http://localhost:4000/api/products/${id}/photos/${index}`, {
-        method: 'DELETE'
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Erreur suppression');
-      
-      setExistingPhotos(data.data.photos);
+      const data = await deleteProductPhoto(id, index);
+      setExistingPhotos(data.photos);
       toast.success('Image supprimée');
     } catch (error: any) {
       toast.error(error.message || 'Erreur lors de la suppression');
@@ -204,12 +207,8 @@ export default function ModifierProduitPageContent() {
   };
 
   const removePhoto = (index: number) => {
-    // Determine if it was an existing photo or a new File based on index?
-    // Since previews are a mix, we safely remove by index from both or determine based on length difference.
-    // For simplicity, we just filter previews array.
     setPreviews(previews.filter((_, i) => i !== index));
-    // If photos correlate exactly at the end, we could remove them carefully, but this matches the naive implementation requested.
-    // We just reset everything for the mockup.
+    setPhotos(photos.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -232,36 +231,32 @@ export default function ModifierProduitPageContent() {
   const onSubmit = async (data: ProductFormValues, isDraft: boolean = false) => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'photos') {
-          formData.append(key, String(value));
-        }
-      });
-      formData.append('status', isDraft ? 'draft' : 'published');
+      const userStr = localStorage.getItem("fc_user");
+      let userId = 1;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userId = userObj.id || userObj.userId || 1;
+        } catch (e) {}
+      }
 
-      // Nouvelles photos jointes dans le même appel PATCH
-      photos.forEach(photo => {
-        formData.append("photos", photo);
-      });
+      const productData = {
+        ...data,
+        user_id: userId,
+        status: isDraft ? 'draft' : 'published',
+      };
 
-      const response = await fetch(`http://localhost:4000/api/products/${id}`, {
-        method: "PATCH",
-        body: formData
-      });
+      await updateProduct(id, productData);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result?.error || "Erreur lors de la modification");
-        return;
+      if (photos.length > 0) {
+        await uploadProductPhotos(id, photos);
       }
 
       toast.success(isDraft ? "Brouillon mis à jour !" : "Produit modifié avec succès !");
       router.push("/produits");
 
-    } catch (error) {
-      toast.error("Impossible de contacter le serveur");
+    } catch (error: any) {
+      toast.error(error.message || "Impossible de contacter le serveur");
       console.error(error);
     } finally {
       setLoading(false);
@@ -278,10 +273,20 @@ export default function ModifierProduitPageContent() {
 
   if (initialLoading) {
     return (
-      <div className="flex h-[400px] items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="text-sm text-muted-foreground">Chargement...</p>
+      <div className="max-w-[72rem] mx-auto pb-12 space-y-6">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="h-9 w-9 bg-gray-200 animate-pulse rounded-md"></div>
+          <div className="h-8 w-48 bg-gray-200 animate-pulse rounded"></div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="h-96 bg-gray-200 animate-pulse rounded-lg"></div>
+            <div className="h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+          </div>
+          <div className="space-y-6">
+            <div className="h-72 bg-gray-200 animate-pulse rounded-lg"></div>
+            <div className="h-48 bg-gray-200 animate-pulse rounded-lg"></div>
+          </div>
         </div>
       </div>
     );
@@ -395,7 +400,7 @@ export default function ModifierProduitPageContent() {
                   {existingPhotos.map((photo, index) => (
                     <div key={`existing-${index}`} className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm">
                       <img
-                        src={`http://localhost:4000${photo}`}
+                        src={resolveImageUrl(photo)}
                         alt={`Photo ${index + 1}`}
                         className="w-full h-24 object-cover"
                         onError={(e) => {

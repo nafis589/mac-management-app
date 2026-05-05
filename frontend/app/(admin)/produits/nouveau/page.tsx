@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { AddCategoryModal } from "@/components/AddCategoryModal";
 import { AddBrandModal } from "@/components/AddBrandModal";
+import { getCategories, getBrands, createProduct, uploadProductPhotos } from "@/lib/api";
 
 const productSchema = z.object({
   name: z.string().min(2, "Min 2 caractères").max(100),
@@ -51,13 +52,12 @@ export default function NouveauProduitPage() {
   const [showAddBrand, setShowAddBrand] = useState(false);
 
   useEffect(() => {
-    // Load categories and brands and fail safely avoiding HTML responses
     Promise.all([
-      fetch("http://localhost:4000/api/categories").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] })),
-      fetch("http://localhost:4000/api/brands").then(res => res.ok ? res.json() : { data: [] }).catch(() => ({ data: [] }))
+      getCategories().catch(() => []),
+      getBrands().catch(() => [])
     ]).then(([catData, brandData]) => {
-      if (catData?.data) setCategories(catData.data);
-      if (brandData?.data) setBrands(brandData.data);
+      if (catData) setCategories(catData);
+      if (brandData) setBrands(brandData);
     }).catch(err => console.error("Erreur chargement filtres", err));
   }, []);
 
@@ -127,19 +127,11 @@ export default function NouveauProduitPage() {
     });
   };
 
-  /**
-   * Appelé après création d'une catégorie depuis la modal.
-   * Ajoute la catégorie à la liste et la sélectionne automatiquement.
-   */
   const handleCategoryAdded = (newCategory: { id: string; name: string }) => {
     setCategories((prev) => [...prev, newCategory]);
     setValue("category_id", String(newCategory.id));
   };
 
-  /**
-   * Appelé après création d'une marque depuis la modal.
-   * Ajoute la marque à la liste et la sélectionne automatiquement.
-   */
   const handleBrandAdded = (newBrand: { id: string; name: string }) => {
     setBrands((prev) => [...prev, newBrand]);
     setValue("brand_id", String(newBrand.id));
@@ -148,36 +140,32 @@ export default function NouveauProduitPage() {
   const onSubmit = async (data: ProductFormValues, isDraft: boolean = false) => {
     setLoading(true);
     try {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (key !== 'photos') {
-          formData.append(key, String(value));
-        }
-      });
-      formData.append('status', isDraft ? 'draft' : 'published');
+      const userStr = localStorage.getItem("fc_user");
+      let userId = 1;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userId = userObj.id || userObj.userId || 1;
+        } catch (e) {}
+      }
 
-      // Photos incluses dans le même appel (multer les parse côté backend)
-      photos.forEach(photo => {
-        formData.append("photos", photo);
-      });
+      const productData = {
+        ...data,
+        user_id: userId,
+        status: isDraft ? 'draft' : 'published',
+      };
 
-      const response = await fetch("http://localhost:4000/api/products", {
-        method: "POST",
-        body: formData
-      });
+      const created = await createProduct(productData);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        toast.error(result?.error || "Erreur lors de la création");
-        return;
+      if (photos.length > 0) {
+        await uploadProductPhotos(created.id, photos);
       }
 
       toast.success(isDraft ? "Brouillon sauvegardé !" : "Produit créé avec succès !");
       router.push("/produits");
 
-    } catch (error) {
-      toast.error("Impossible de contacter le serveur");
+    } catch (error: any) {
+      toast.error(error.message || "Impossible de contacter le serveur");
       console.error(error);
     } finally {
       setLoading(false);

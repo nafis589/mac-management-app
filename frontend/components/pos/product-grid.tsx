@@ -23,7 +23,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-const API_BASE = "http://localhost:4000/api"
+import { getProducts, getCategories } from "@/lib/api"
 
 export function ProductGrid() {
   const router = useRouter()
@@ -38,26 +38,24 @@ export function ProductGrid() {
   const fetchProducts = React.useCallback(async () => {
     try {
       setIsLoading(true)
-      const res = await fetch(`${API_BASE}/products`)
-      const data = await res.json()
-      if (data.success) setProducts(data.data)
+      const data = await getProducts()
+      if (data) setProducts(data)
     } catch { /* silently fail */ } finally {
       setIsLoading(false)
     }
   }, [])
 
-  const fetchCategories = React.useCallback(async () => {
+  const fetchCategoriesList = React.useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/categories`)
-      const data = await res.json()
-      if (data.success) setCategories(data.data)
+      const data = await getCategories()
+      if (data) setCategories(data)
     } catch { /* silently fail */ }
   }, [])
 
   React.useEffect(() => {
     fetchProducts()
-    fetchCategories()
-  }, [fetchProducts, fetchCategories])
+    fetchCategoriesList()
+  }, [fetchProducts, fetchCategoriesList])
 
   // Expose fetchProducts for external refresh
   React.useEffect(() => {
@@ -131,11 +129,16 @@ export function ProductGrid() {
         </div>
       </div>
 
-      {/* Products Grid */}
       <ScrollArea className="flex-1 px-4">
         {isLoading ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-300" />
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
+            {[...Array(8)].map((_, i) => (
+              <div key={i} className="flex flex-col gap-2">
+                <div className="aspect-[4/3] rounded-xl bg-gray-200 animate-pulse"></div>
+                <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+                <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded"></div>
+              </div>
+            ))}
           </div>
         ) : filteredProducts.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-40 text-gray-400">

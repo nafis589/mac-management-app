@@ -30,7 +30,17 @@ export default function MonthlyReportPageContent() {
   }, [month, year]);
 
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">Chargement des données...</div>;
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-2 md:pt-4">
+        <div className="h-8 w-64 bg-gray-200 animate-pulse rounded"></div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-4 mt-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-28 bg-gray-200 animate-pulse rounded-xl"></div>
+          ))}
+        </div>
+        <div className="h-96 bg-gray-200 animate-pulse rounded-xl mt-4"></div>
+      </div>
+    );
   }
 
   return (

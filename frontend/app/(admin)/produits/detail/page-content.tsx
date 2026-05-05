@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getProductById, deleteProduct, resolveImageUrl } from '@/lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -160,10 +161,7 @@ export default function ProductDetailPageContent() {
 
   const loadProduct = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/products/${id}`);
-      if (!res.ok) throw new Error('Produit non trouvé');
-      const json = await res.json();
-      const d = json.data;
+      const d = await getProductById(id);
       d.photos = parsePhotos(d.photos);
       if (!d.stats) {
         d.stats = { total_sold: 0, total_revenue: 0, available_stock: d.quantity };
@@ -179,10 +177,9 @@ export default function ProductDetailPageContent() {
 
   const handleDelete = async () => {
     try {
-      const res = await fetch(`http://localhost:4000/api/products/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) throw new Error();
+      // NOTE: Here we should pass the current user's ID if we want to log who deleted it.
+      // For now, assuming no current user ID or we can fetch it. Let's pass undefined.
+      await deleteProduct(id);
       toast.success('Produit supprimé');
       router.push('/produits');
     } catch {
@@ -227,7 +224,7 @@ export default function ProductDetailPageContent() {
   if (!product) return null;
 
   const photos = product.photos;
-  const imgSrc = (path: string) => `http://localhost:4000${path}`;
+  const imgSrc = resolveImageUrl;
 
   const infoRows = [
     { label: 'Catégorie', value: product.category_name ?? '—' },

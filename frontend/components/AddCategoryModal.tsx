@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
+import { createCategory } from "@/lib/api";
 
 import {
   Dialog,
@@ -56,26 +57,12 @@ export function AddCategoryModal({
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:4000/api/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Le backend renvoie { success: false, error: "..." }
-        toast.error(data.error || "Erreur lors de la création");
-        return;
-      }
-
+      const data = await createCategory(name.trim());
       toast.success("Catégorie ajoutée avec succès !");
-      // Passe la catégorie créée au formulaire parent
-      onSuccess(data.data);
+      onSuccess(data);
       handleClose();
-    } catch (error) {
-      toast.error("Impossible de contacter le serveur");
+    } catch (error: any) {
+      toast.error(error.message || "Impossible de contacter le serveur");
       console.error("[AddCategoryModal]", error);
     } finally {
       setLoading(false);

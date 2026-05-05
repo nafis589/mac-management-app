@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { ProduitsClient } from "./produits-client";
 import ProduitsLoading from "./loading";
-
-const API_BASE = "http://localhost:4000/api";
+import { getProducts } from "@/lib/api";
 
 export default function ProduitsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -13,11 +12,8 @@ export default function ProduitsPage() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch(`${API_BASE}/products`);
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data.data || []);
-        }
+        const data = await getProducts();
+        setProducts(data || []);
       } catch (err) {
         console.error("Failed to fetch products:", err);
       } finally {
