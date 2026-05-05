@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { StockClient } from "./stock-client";
 import { Loader2 } from "lucide-react";
 
-const API_BASE = "http://localhost:4000/api";
+import { getStockDashboard, getLowStockAlerts, getStockMovements } from "@/lib/api";
 
 export default function StockPage() {
   const [dashboard, setDashboard] = useState({ totalProducts: 0, stockValue: 0, lowStockCount: 0 });
@@ -15,19 +15,15 @@ export default function StockPage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [dashRes, alertsRes, movementsRes] = await Promise.all([
-          fetch(`${API_BASE}/stock/dashboard`),
-          fetch(`${API_BASE}/stock/alerts`),
-          fetch(`${API_BASE}/stock`),
+        const [dashData, alertsData, movementsData] = await Promise.all([
+          getStockDashboard().catch(() => null),
+          getLowStockAlerts().catch(() => []),
+          getStockMovements().catch(() => [])
         ]);
 
-        const dashData = dashRes.ok ? await dashRes.json() : null;
-        const alertsData = alertsRes.ok ? await alertsRes.json() : null;
-        const movementsData = movementsRes.ok ? await movementsRes.json() : null;
-
-        setDashboard(dashData?.data || { totalProducts: 0, stockValue: 0, lowStockCount: 0 });
-        setAlerts(alertsData?.data || []);
-        setMovements(movementsData?.data || []);
+        setDashboard(dashData || { totalProducts: 0, stockValue: 0, lowStockCount: 0 });
+        setAlerts(alertsData || []);
+        setMovements(movementsData || []);
       } catch (err) {
         console.error("Erreur chargement stock", err);
       } finally {

@@ -45,7 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-const API_BASE = "http://localhost:4000/api"
+import { resolveImageUrl, addStock } from "@/lib/api"
 
 export interface DashboardData {
   totalProducts: number
@@ -82,16 +82,16 @@ function getPhotoUrl(photosRaw: any) {
     if (Array.isArray(parsed) && parsed.length > 0) {
       const first = parsed[0]
       if (typeof first === "string" && first.trim() !== "") {
-        return first.startsWith("http") ? first : `http://localhost:4000${first}`
+        return resolveImageUrl(first)
       }
     } else if (typeof parsed === "string" && parsed.trim() !== "") {
       const raw = parsed.trim()
-      return raw.startsWith("http") ? raw : `http://localhost:4000${raw}`
+      return resolveImageUrl(raw)
     }
   } catch (e) {
     const raw = String(photosRaw).trim()
     if (raw !== "") {
-      return raw.startsWith("http") ? raw : `http://localhost:4000${raw}`
+      return resolveImageUrl(raw)
     }
   }
   return null
@@ -141,26 +141,22 @@ export function StockClient({
 
     setIsSubmitting(true)
     try {
-      const res = await fetch(`${API_BASE}/stock`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product_id: selectedProduct.id,
-          quantity: qty,
-          type: "IN",
-        }),
-      })
-      const data = await res.json()
-
-      if (!res.ok) {
-        throw new Error(data.error || "Erreur lors du réapprovisionnement")
+      const userStr = localStorage.getItem("fc_user");
+      let userId = 1;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          userId = userObj.id || userObj.userId || 1;
+        } catch (e) {}
       }
+
+      await addStock(selectedProduct.id, qty, userId, "IN")
 
       toast.success("Stock mis à jour avec succès")
       setIsModalOpen(false)
       router.refresh() // Refresh server components to get new data
     } catch (error: any) {
-      toast.error(error.message)
+      toast.error(error.message || "Erreur lors du réapprovisionnement")
     } finally {
       setIsSubmitting(false)
     }

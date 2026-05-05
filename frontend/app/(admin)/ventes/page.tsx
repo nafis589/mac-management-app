@@ -13,8 +13,7 @@ import { usePosStore } from "@/lib/pos-store"
 import { ProductGrid } from "@/components/pos/product-grid"
 import { CartSidebar } from "@/components/pos/cart-sidebar"
 import { generateTicket, TicketSaleData, TicketItemData } from "@/lib/ticket-generator"
-
-const API_BASE = "http://localhost:4000/api"
+import { createSale } from "@/lib/api"
 
 export default function CaissePage() {
   const { cart, discountType, discountValue, clearCart } = usePosStore()
@@ -42,25 +41,33 @@ export default function CaissePage() {
 
     try {
       setIsSubmitting(true)
-      const res = await fetch(`${API_BASE}/sales`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          total_amount: subTotal,
-          discount_type: discountType,
-          discount_value: discountValue,
-          final_amount: finalTotal,
-          payment_methods: finalPaymentMethods,
-          cashier_id: 1,
-          items: cart.map(item => ({
-            productId: item.id,
-            quantity: item.cartQuantity,
-            unitPrice: Number(item.sale_price)
-          }))
-        })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Erreur")
+
+      const userStr = localStorage.getItem("fc_user");
+      let cashierId = 1;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          cashierId = userObj.id || userObj.userId || 1;
+        } catch (e) {}
+      }
+
+      const saleData = {
+        total_amount: subTotal,
+        discount_type: discountType,
+        discount_value: discountValue,
+        final_amount: finalTotal,
+        payment_methods: finalPaymentMethods,
+        cashier_id: cashierId,
+      }
+      
+      const items = cart.map(item => ({
+        productId: item.id,
+        quantity: item.cartQuantity,
+        unitPrice: Number(item.sale_price)
+      }))
+
+      const data = await createSale(saleData, items)
+      
       setSaleReference(data.reference)
       setIsPaymentOpen(false)
       setIsSuccessOpen(true)

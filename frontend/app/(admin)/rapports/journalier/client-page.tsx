@@ -35,6 +35,8 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 
+import { exportReportToPDF } from "@/lib/api";
+
 export default function DailyReportClient({
   initialData,
   selectedDate
@@ -57,18 +59,10 @@ export default function DailyReportClient({
     if (!initialData) return;
     setIsExporting(true);
     try {
-      const response = await fetch("http://localhost:4000/api/reports/export/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "daily",
-          reportData: initialData
-        })
-      });
+      const data = await exportReportToPDF(initialData, "daily");
 
-      if (!response.ok) throw new Error("Erreur d'export");
-
-      const blob = await response.blob();
+      // Handle both Blob (from web) and ArrayBuffer/Uint8Array (from Electron)
+      const blob = data instanceof Blob ? data : new Blob([data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

@@ -26,6 +26,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
+import { exportReportToPDF } from "@/lib/api";
 
 const MONTHS = [
   { value: "1", label: "Janvier" },
@@ -65,14 +66,10 @@ export default function MonthlyReportClient({
   const exportPDF = async () => {
     try {
       setIsExporting(true);
-      const res = await fetch("http://localhost:4000/api/reports/export/pdf", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reportData: initialData, type: "monthly" }),
-      });
+      const data = await exportReportToPDF(initialData, "monthly");
 
-      if (!res.ok) throw new Error("Erreur lors de l'exportation");
-      const blob = await res.blob();
+      // Handle both Blob (from web) and ArrayBuffer/Uint8Array (from Electron)
+      const blob = data instanceof Blob ? data : new Blob([data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

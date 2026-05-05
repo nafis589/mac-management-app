@@ -1,6 +1,7 @@
 "use client"
 import * as React from "react"
 import Link from "next/link"
+import { resolveImageUrl } from "@/lib/api"
 
 import {
   type ColumnDef,
@@ -103,16 +104,16 @@ export function ProduitsClient({ initialProducts }: { initialProducts: Product[]
               if (Array.isArray(parsed) && parsed.length > 0) {
                 const first = parsed[0]
                 if (typeof first === 'string' && first.trim() !== '') {
-                  photoUrl = first.startsWith('http') ? first : `http://localhost:4000${first}`
+                  photoUrl = resolveImageUrl(first)
                 }
               } else if (typeof parsed === 'string' && parsed.trim() !== '') {
                 const raw = parsed.trim()
-                photoUrl = raw.startsWith('http') ? raw : `http://localhost:4000${raw}`
+                photoUrl = resolveImageUrl(raw)
               }
             } catch (e) {
               const raw = String(row.original.photos).trim()
               if (raw !== '') {
-                  photoUrl = raw.startsWith('http') ? raw : `http://localhost:4000${raw}`
+                  photoUrl = resolveImageUrl(raw)
               }
             }
           }

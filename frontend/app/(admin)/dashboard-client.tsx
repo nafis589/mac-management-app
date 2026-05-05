@@ -25,6 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getDailyReport, getMonthlyReport, getSalesHistory, getProducts } from "@/lib/api";
 
 export default function DashboardClient() {
   const router = useRouter();
@@ -43,23 +44,18 @@ export default function DashboardClient() {
         const month = (currentDate.getMonth() + 1).toString();
         const year = currentDate.getFullYear().toString();
 
-        const [dailyRes, monthlyRes, salesRes, productsRes] = await Promise.all([
-          fetch(`http://localhost:4000/api/reports/daily?date=${today}`),
-          fetch(`http://localhost:4000/api/reports/monthly?month=${month}&year=${year}`),
-          fetch(`http://localhost:4000/api/sales?limit=5&include_items=true`),
-          fetch(`http://localhost:4000/api/products`)
+        const [dailyData, monthlyData, salesData, productsData] = await Promise.all([
+          getDailyReport(today).catch(() => null),
+          getMonthlyReport(Number(month), Number(year)).catch(() => null),
+          getSalesHistory({ limit: 5, include_items: true }).catch(() => []),
+          getProducts().catch(() => [])
         ]);
 
-        const dailyData = dailyRes.ok ? await dailyRes.json() : null;
-        const monthlyData = monthlyRes.ok ? await monthlyRes.json() : null;
-        const salesData = salesRes.ok ? await salesRes.json() : null;
-        const productsData = productsRes.ok ? await productsRes.json() : null;
-
-        setDailyReport(dailyData?.success ? dailyData.data : null);
-        setMonthlyReport(monthlyData?.success ? monthlyData.data : null);
-        setRecentSales(salesData?.success ? salesData.data : []);
+        setDailyReport(dailyData);
+        setMonthlyReport(monthlyData);
+        setRecentSales(salesData || []);
         
-        const allProducts = productsData?.success ? productsData.data : [];
+        const allProducts = productsData || [];
         setLowStockProducts(allProducts.filter((p: any) => p.quantity <= 5));
       } catch (err) {
         console.error("Erreur de chargement", err);
