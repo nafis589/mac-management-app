@@ -27,6 +27,7 @@ const ALLOWED_CHANNELS = [
   'products:search',
   'products:uploadPhotos',
   'products:getDeleted',
+  'products:deletePhoto',
 
   // Stock
   'stock:getDashboard',

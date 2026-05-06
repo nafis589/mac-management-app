@@ -136,6 +136,16 @@ function registerHandlers(backend) {
     }
   });
 
+  ipcMain.handle('products:deletePhoto', async (_event, productId, photoIndex) => {
+    try {
+      const data = await backend.products.deletePhoto(productId, photoIndex);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] products:deletePhoto error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
   // ═══════════════════════════════════════════
   // STOCK (8 handlers)
   // ═══════════════════════════════════════════

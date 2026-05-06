@@ -7,8 +7,13 @@
  * - Crée la fenêtre principale et charge le frontend statique
  */
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, protocol, net } = require('electron');
 const path = require('path');
+
+// Enregistrer le schéma 'local' comme privilégié pour contourner CORS
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'local', privileges: { secure: true, standard: true, supportFetchAPI: true, bypassCSP: true } }
+]);
 
 // Référence à la fenêtre principale (évite le garbage collection)
 let mainWindow = null;
@@ -58,6 +63,34 @@ async function createWindow() {
  */
 app.whenReady().then(async () => {
   try {
+    // 0. Enregistrer le protocole local:// pour charger les images/fichiers depuis le disque
+    protocol.handle('local', async (request) => {
+      try {
+        let filePath = request.url.replace('local://', '');
+        filePath = decodeURIComponent(filePath);
+        // Supprimer le slash initial sur Windows pour avoir un chemin valide (ex: /C:/... => C:/...)
+        if (process.platform === 'win32' && filePath.startsWith('/')) {
+          filePath = filePath.substring(1);
+        }
+        
+        // En prod vs dev, le chemin racine du dossier uploads peut changer.
+        // Par défaut (dev ou root), on prend le dossier parent du dossier electron
+        let absolutePath = path.join(__dirname, '..', filePath);
+        
+        if (app.isPackaged) {
+          absolutePath = path.join(process.resourcesPath, filePath);
+        }
+
+        const { pathToFileURL } = require('url');
+        const fileUrl = pathToFileURL(absolutePath).toString();
+        console.log('[PROTOCOL local] Request URL:', request.url, '-> resolving to:', fileUrl);
+        return await net.fetch(fileUrl);
+      } catch (err) {
+        console.error('[PROTOCOL local] Error resolving file:', request.url, err);
+        return new Response('Not Found', { status: 404 });
+      }
+    });
+
     // 1. Initialiser le backend (connexion DB)
     const backendPath = 'file://' + path.join(__dirname, '../backend/dist/index.js').replace(/\\/g, '/');
     const backend = await import(backendPath);

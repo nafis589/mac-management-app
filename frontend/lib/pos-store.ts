@@ -1,4 +1,5 @@
 import { create } from "zustand"
+import { resolveImageUrl } from "@/lib/api"
 
 export interface Product {
   id: number
@@ -69,15 +70,14 @@ export function getPhotoUrl(photosRaw: any) {
     if (Array.isArray(parsed) && parsed.length > 0) {
       const first = parsed[0]
       if (typeof first === "string" && first.trim() !== "") {
-        return first.startsWith("http") ? first : `http://localhost:4000${first}`
+        return resolveImageUrl(first)
       }
     } else if (typeof parsed === "string" && parsed.trim() !== "") {
-      const raw = parsed.trim()
-      return raw.startsWith("http") ? raw : `http://localhost:4000${raw}`
+      return resolveImageUrl(parsed.trim())
     }
   } catch {
     const raw = String(photosRaw).trim()
-    if (raw !== "") return raw.startsWith("http") ? raw : `http://localhost:4000${raw}`
+    if (raw !== "") return resolveImageUrl(raw)
   }
   return null
 }

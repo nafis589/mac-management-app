@@ -117,9 +117,10 @@ export function resolveImageUrl(imagePath: string): string {
     return imagePath;
   }
   if (isElectron()) {
-    // En mode Electron, les images sont dans le dossier uploads relatif à l'app
-    // TODO: adapter si nécessaire avec app.getPath('userData')
-    return imagePath;
+    // En mode Electron, on utilise un protocole personnalisé local://
+    // pour charger les images depuis le système de fichiers local
+    // en contournant les restrictions CORS et de sécurité web.
+    return `local://${imagePath}`;
   }
   return `http://localhost:4000${imagePath}`;
 }
@@ -251,10 +252,7 @@ export async function deleteProductPhoto(
   photoIndex: number
 ): Promise<any> {
   if (isElectron()) {
-    // TODO: ajouter un canal IPC dédié si nécessaire
-    return ipcInvoke("products:update", productId, {
-      deletePhotoIndex: photoIndex,
-    });
+    return ipcInvoke("products:deletePhoto", productId, photoIndex);
   }
   return httpDelete(`/products/${productId}/photos/${photoIndex}`);
 }
