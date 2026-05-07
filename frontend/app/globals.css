@@ -132,10 +132,30 @@
     font-family: var(--font-sans), system-ui, sans-serif;
     overflow-x: hidden;
     overscroll-behavior: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   html {
     @apply font-sans;
     overscroll-behavior: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
+}
+
+@layer utilities {
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
   }
 }

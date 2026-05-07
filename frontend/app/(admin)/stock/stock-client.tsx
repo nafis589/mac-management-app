@@ -107,6 +107,7 @@ export function StockClient({
   initialMovements: StockMovement[]
 }) {
   const router = useRouter()
+  const tabScrollClassName = "space-y-4 max-h-[calc(100vh-14rem)] overflow-y-auto scrollbar-hidden pr-1"
 
   // Reappro Modal State
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null)
@@ -292,7 +293,7 @@ export function StockClient({
           <TabsTrigger value="history">Historique Mouvements</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="alerts" className="space-y-4">
+        <TabsContent value="alerts" className={tabScrollClassName}>
           <Card className="shadow-none">
             <CardHeader>
               <CardTitle>Produits nécessitant un réapprovisionnement</CardTitle>
@@ -413,7 +414,7 @@ export function StockClient({
           </Card>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history" className={tabScrollClassName}>
           <Card className="shadow-none">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

@@ -94,6 +94,17 @@ export const brandsService = {
    */
   async delete(id: number | string) {
     try {
+      const [usageRows]: any = await pool.query(
+        'SELECT COUNT(*) AS count FROM products WHERE brand_id = ?',
+        [id]
+      );
+      const usageCount = Number(usageRows?.[0]?.count || 0);
+      if (usageCount > 0) {
+        const err: any = new Error(`Marque utilisée par ${usageCount} produits`);
+        err.status = 400;
+        throw err;
+      }
+
       const [result]: any = await pool.query('DELETE FROM brands WHERE id = ?', [id]);
       if (result.affectedRows === 0) throw new Error('Marque introuvable');
       logger.info(`Marque supprimée : id=${id}`);

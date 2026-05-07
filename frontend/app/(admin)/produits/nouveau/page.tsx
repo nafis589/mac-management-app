@@ -12,7 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { AddCategoryModal } from "@/components/AddCategoryModal";
 import { AddBrandModal } from "@/components/AddBrandModal";
-import { getCategories, getBrands, createProduct, uploadProductPhotos } from "@/lib/api";
+import {
+  getCategories,
+  getBrands,
+  createProduct,
+  uploadProductPhotos,
+  deleteCategory,
+  deleteBrand,
+} from "@/lib/api";
 
 const productSchema = z.object({
   name: z.string().min(2, "Min 2 caractères").max(100),
@@ -51,13 +58,25 @@ export default function NouveauProduitPage() {
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddBrand, setShowAddBrand] = useState(false);
 
+  const refreshCategories = async () => {
+    const data = await getCategories();
+    setCategories(data || []);
+    return data || [];
+  };
+
+  const refreshBrands = async () => {
+    const data = await getBrands();
+    setBrands(data || []);
+    return data || [];
+  };
+
   useEffect(() => {
     Promise.all([
-      getCategories().catch(() => []),
-      getBrands().catch(() => [])
+      refreshCategories().catch(() => undefined),
+      refreshBrands().catch(() => undefined)
     ]).then(([catData, brandData]) => {
-      if (catData) setCategories(catData);
-      if (brandData) setBrands(brandData);
+      if (catData) setCategories(catData as any);
+      if (brandData) setBrands(brandData as any);
     }).catch(err => console.error("Erreur chargement filtres", err));
   }, []);
 
@@ -135,6 +154,34 @@ export default function NouveauProduitPage() {
   const handleBrandAdded = (newBrand: { id: string; name: string }) => {
     setBrands((prev) => [...prev, newBrand]);
     setValue("brand_id", String(newBrand.id));
+  };
+
+  const handleDeleteCategory = async (categoryId: string | number, categoryName: string) => {
+    if (!window.confirm(`Supprimer ${categoryName} ?`)) return;
+    try {
+      await deleteCategory(categoryId);
+      await refreshCategories();
+      if (watch("category_id") === String(categoryId)) {
+        setValue("category_id", "");
+      }
+      toast.success("Catégorie supprimée");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la suppression");
+    }
+  };
+
+  const handleDeleteBrand = async (brandId: string | number, brandName: string) => {
+    if (!window.confirm(`Supprimer ${brandName} ?`)) return;
+    try {
+      await deleteBrand(brandId);
+      await refreshBrands();
+      if (watch("brand_id") === String(brandId)) {
+        setValue("brand_id", "");
+      }
+      toast.success("Marque supprimée");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la suppression");
+    }
   };
 
   const onSubmit = async (data: ProductFormValues, isDraft: boolean = false) => {
@@ -345,8 +392,25 @@ export default function NouveauProduitPage() {
                           <SelectValue placeholder="Select brand" />
                         </SelectTrigger>
                         <SelectContent>
-                          {brands.map(b => (
-                            <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                          {brands.map((b) => (
+                            <div key={b.id} className="relative group">
+                              <SelectItem value={String(b.id)} className="pr-8">
+                                {b.name}
+                              </SelectItem>
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  await handleDeleteBrand(b.id, b.name);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
+                                type="button"
+                                aria-label={`Supprimer ${b.name}`}
+                                title={`Supprimer ${b.name}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
                         </SelectContent>
                       </Select>
@@ -389,16 +453,6 @@ export default function NouveauProduitPage() {
                 {errors.purchase_price && <p className="text-red-500 text-xs mt-1">{errors.purchase_price.message}</p>}
               </div>
               
-              <div className="flex items-center gap-2 pt-2">
-                <input 
-                  type="checkbox" 
-                  id="charge_tax" 
-                  className="w-4 h-4 rounded border-gray-300 text-fp focus:ring-fp accent-fp"
-                  checked={chargeTax}
-                  onChange={(e) => setValue("charge_tax", e.target.checked)}
-                />
-                <label htmlFor="charge_tax" className="text-sm text-gray-700">Charge tax on this product</label>
-              </div>
             </div>
           </div>
 
@@ -438,8 +492,25 @@ export default function NouveauProduitPage() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map(c => (
-                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          {categories.map((c) => (
+                            <div key={c.id} className="relative group">
+                              <SelectItem value={String(c.id)} className="pr-8">
+                                {c.name}
+                              </SelectItem>
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  await handleDeleteCategory(c.id, c.name);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
+                                type="button"
+                                aria-label={`Supprimer ${c.name}`}
+                                title={`Supprimer ${c.name}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
                         </SelectContent>
                       </Select>

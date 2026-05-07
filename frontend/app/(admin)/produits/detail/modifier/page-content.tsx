@@ -19,7 +19,9 @@ import {
   updateProduct, 
   uploadProductPhotos, 
   deleteProductPhoto,
-  resolveImageUrl 
+  resolveImageUrl,
+  deleteCategory,
+  deleteBrand,
 } from "@/lib/api";
 import {
   AlertDialog,
@@ -78,6 +80,18 @@ export default function ModifierProduitPageContent() {
   const [showAddBrand, setShowAddBrand] = useState(false);
   const [photoToDelete, setPhotoToDelete] = useState<number | null>(null);
 
+  const refreshCategories = async () => {
+    const data = await getCategories();
+    setCategories(data || []);
+    return data || [];
+  };
+
+  const refreshBrands = async () => {
+    const data = await getBrands();
+    setBrands(data || []);
+    return data || [];
+  };
+
   const {
     register,
     handleSubmit,
@@ -106,8 +120,8 @@ export default function ModifierProduitPageContent() {
     // Load product details, categories and brands
     Promise.all([
       getProductById(id).catch(() => null),
-      getCategories().catch(() => []),
-      getBrands().catch(() => [])
+      refreshCategories().catch(() => []),
+      refreshBrands().catch(() => [])
     ]).then(([productData, catData, brandData]) => {
 
       if (catData) setCategories(catData);
@@ -167,6 +181,34 @@ export default function ModifierProduitPageContent() {
   const handleBrandAdded = (newBrand: { id: string; name: string }) => {
     setBrands((prev) => [...prev, newBrand]);
     setValue("brand_id", String(newBrand.id));
+  };
+
+  const handleDeleteCategory = async (categoryId: string | number, categoryName: string) => {
+    if (!window.confirm(`Supprimer ${categoryName} ?`)) return;
+    try {
+      await deleteCategory(categoryId);
+      await refreshCategories();
+      if (watch("category_id") === String(categoryId)) {
+        setValue("category_id", "");
+      }
+      toast.success("Catégorie supprimée");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la suppression");
+    }
+  };
+
+  const handleDeleteBrand = async (brandId: string | number, brandName: string) => {
+    if (!window.confirm(`Supprimer ${brandName} ?`)) return;
+    try {
+      await deleteBrand(brandId);
+      await refreshBrands();
+      if (watch("brand_id") === String(brandId)) {
+        setValue("brand_id", "");
+      }
+      toast.success("Marque supprimée");
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la suppression");
+    }
   };
 
   const inStock = watch("in_stock");
@@ -481,8 +523,25 @@ export default function ModifierProduitPageContent() {
                           <SelectValue placeholder="Select brand" />
                         </SelectTrigger>
                         <SelectContent>
-                          {brands.map(b => (
-                            <SelectItem key={b.id} value={String(b.id)}>{b.name}</SelectItem>
+                          {brands.map((b) => (
+                            <div key={b.id} className="relative group">
+                              <SelectItem value={String(b.id)} className="pr-8">
+                                {b.name}
+                              </SelectItem>
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  await handleDeleteBrand(b.id, b.name);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
+                                type="button"
+                                aria-label={`Supprimer ${b.name}`}
+                                title={`Supprimer ${b.name}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
                         </SelectContent>
                       </Select>
@@ -565,8 +624,25 @@ export default function ModifierProduitPageContent() {
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map(c => (
-                            <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                          {categories.map((c) => (
+                            <div key={c.id} className="relative group">
+                              <SelectItem value={String(c.id)} className="pr-8">
+                                {c.name}
+                              </SelectItem>
+                              <button
+                                onClick={async (e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  await handleDeleteCategory(c.id, c.name);
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
+                                type="button"
+                                aria-label={`Supprimer ${c.name}`}
+                                title={`Supprimer ${c.name}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
                         </SelectContent>
                       </Select>
