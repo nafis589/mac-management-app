@@ -1,7 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-#agent
+# agent
 .agent/
 .agents/
+
+# cursor / editors
+.cursor/
+.vscode/
 # dependencies
 /frontend/node_modules
 /backend/node_modules
@@ -24,8 +28,12 @@ node_modules
 # production
 /frontend/build
 
+# backend build output
+/backend/dist/
+
 # misc
 .DS_Store
+Thumbs.db
 *.pem
 
 # debug
@@ -33,6 +41,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# logs
+*.log
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -47,4 +58,27 @@ yarn-error.log*
 /frontend/next-env.d.ts
 
 /next-shadcn-admin-dashboard/*
-/dist
+
+# electron-builder output / artifacts
+/dist/
+*.dmg
+*.pkg
+*.exe
+*.msi
+*.AppImage
+*.snap
+*.zip
+*.tar.gz
+
+# electron-builder caches
+.electron-builder/
+.cache/
+
+# runtime data (keep folder with .gitkeep)
+/uploads/**
+!/uploads/.gitkeep
+
+# local databases
+*.sqlite
+*.sqlite3
+*.db

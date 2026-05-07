@@ -183,31 +183,41 @@ export default function ModifierProduitPageContent() {
     setValue("brand_id", String(newBrand.id));
   };
 
-  const handleDeleteCategory = async (categoryId: string | number, categoryName: string) => {
-    if (!window.confirm(`Supprimer ${categoryName} ?`)) return;
-    try {
-      await deleteCategory(categoryId);
-      await refreshCategories();
-      if (watch("category_id") === String(categoryId)) {
-        setValue("category_id", "");
-      }
-      toast.success("Catégorie supprimée");
-    } catch (error: any) {
-      toast.error(error.message || "Erreur lors de la suppression");
-    }
+  const [deleteTarget, setDeleteTarget] = useState<
+    | { type: "category" | "brand"; id: string | number; name: string }
+    | null
+  >(null);
+
+  const requestDeleteCategory = (categoryId: string | number, categoryName: string) => {
+    setDeleteTarget({ type: "category", id: categoryId, name: categoryName });
   };
 
-  const handleDeleteBrand = async (brandId: string | number, brandName: string) => {
-    if (!window.confirm(`Supprimer ${brandName} ?`)) return;
+  const requestDeleteBrand = (brandId: string | number, brandName: string) => {
+    setDeleteTarget({ type: "brand", id: brandId, name: brandName });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteBrand(brandId);
-      await refreshBrands();
-      if (watch("brand_id") === String(brandId)) {
-        setValue("brand_id", "");
+      if (deleteTarget.type === "category") {
+        await deleteCategory(deleteTarget.id);
+        await refreshCategories();
+        if (watch("category_id") === String(deleteTarget.id)) {
+          setValue("category_id", "");
+        }
+        toast.success("Catégorie supprimée");
+      } else {
+        await deleteBrand(deleteTarget.id);
+        await refreshBrands();
+        if (watch("brand_id") === String(deleteTarget.id)) {
+          setValue("brand_id", "");
+        }
+        toast.success("Marque supprimée");
       }
-      toast.success("Marque supprimée");
     } catch (error: any) {
       toast.error(error.message || "Erreur lors de la suppression");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -532,7 +542,7 @@ export default function ModifierProduitPageContent() {
                                 onClick={async (e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  await handleDeleteBrand(b.id, b.name);
+                                  requestDeleteBrand(b.id, b.name);
                                 }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
                                 type="button"
@@ -633,7 +643,7 @@ export default function ModifierProduitPageContent() {
                                 onClick={async (e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  await handleDeleteCategory(c.id, c.name);
+                                  requestDeleteCategory(c.id, c.name);
                                 }}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 z-50"
                                 type="button"
@@ -689,6 +699,31 @@ export default function ModifierProduitPageContent() {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteExistingPhoto} className="bg-red-500 text-white hover:bg-red-600">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Supprimer {deleteTarget?.type === "category" ? "cette catégorie" : "cette marque"} ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget?.name ? (
+                <>
+                  Confirmez la suppression de <b>{deleteTarget.name}</b>. Cette action est irréversible.
+                </>
+              ) : (
+                "Confirmez la suppression. Cette action est irréversible."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-500 text-white hover:bg-red-600">
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
