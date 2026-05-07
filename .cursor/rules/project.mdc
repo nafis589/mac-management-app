@@ -1,5 +1,0 @@
----
-alwaysApply: true
----
-
-Avant d’exécuter toute tâche, l’agent doit obligatoirement lire et prendre en compte le contenu des fichiers agent.md, project.md et tasks.md
