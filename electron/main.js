@@ -76,12 +76,17 @@ app.whenReady().then(async () => {
           filePath = filePath.substring(1);
         }
 
-        // En prod vs dev, le chemin racine du dossier uploads peut changer.
-        // Par défaut (dev ou root), on prend le dossier parent du dossier electron
-        let absolutePath = path.join(__dirname, '..', filePath);
-
-        if (app.isPackaged) {
-          absolutePath = path.join(process.resourcesPath, filePath);
+        // Priorité aux fichiers utilisateur (uploads écrits à runtime).
+        // Exemple: local:///uploads/products/... -> %APPDATA%/Friperie de Luxe/uploads/products/...
+        let absolutePath;
+        if (filePath.startsWith('uploads/')) {
+          absolutePath = path.join(app.getPath('userData'), filePath);
+        } else {
+          // En prod vs dev, le chemin racine des assets bundle peut changer.
+          absolutePath = path.join(__dirname, '..', filePath);
+          if (app.isPackaged) {
+            absolutePath = path.join(process.resourcesPath, filePath);
+          }
         }
 
         const { pathToFileURL } = require('url');

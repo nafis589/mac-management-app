@@ -361,8 +361,12 @@ export const productsService = {
 
   async uploadPhotos(productId: number | string, files: any[]) {
     try {
-      // Assuming upload is in project root /uploads/products -> relative to this file would be ../../uploads/products/
-      const uploadDir = path.join(__dirname, '../../uploads/products', String(productId));
+      // En Electron packagé, __dirname pointe dans app.asar (non écrivable).
+      // On stocke donc les uploads à côté de la DB SQLite (dossier userData).
+      const uploadsRoot = process.env.DB_PATH
+        ? path.join(path.dirname(process.env.DB_PATH), 'uploads')
+        : path.join(__dirname, '../../uploads');
+      const uploadDir = path.join(uploadsRoot, 'products', String(productId));
       fs.mkdirSync(uploadDir, { recursive: true });
       
       const photoPaths = [];

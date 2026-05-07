@@ -1,1 +1,6 @@
-@AGENTS.md
+---
+description: 
+alwaysApply: true
+---
+
+@Agent.md

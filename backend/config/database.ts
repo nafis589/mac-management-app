@@ -53,6 +53,13 @@ if (isElectron) {
     query: async (sql: string, params: any[] = []) => {
       return executeQuery(sql, params);
     },
+    /**
+     * Exécute un script SQL multi-statements (CREATE TABLE, etc.)
+     * Utilisé pour initialiser le schéma SQLite au premier lancement.
+     */
+    exec: (sql: string) => {
+      return db.exec(sql);
+    },
     getConnection: async () => {
       return {
         query: async (sql: string, params: any[] = []) => executeQuery(sql, params),

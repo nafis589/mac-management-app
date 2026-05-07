@@ -39,9 +39,11 @@ export class AuthService {
           `SELECT COUNT(*) as attempts 
            FROM logs 
            WHERE action = 'LOGIN_FAILED' 
-           AND json_extract(details, '$.username') = ?
+           -- Certains builds SQLite n'ont pas json_extract().
+           -- details est stocké en JSON.stringify({ username }) donc LIKE est fiable ici.
+           AND details LIKE ?
            AND created_at > ?`,
-          [username, sinceTimestamp]
+          [`%${username}%`, sinceTimestamp]
         );
         rows = result[0];
       } else {
