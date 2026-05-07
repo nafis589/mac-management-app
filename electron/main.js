@@ -7,7 +7,7 @@
  * - Crée la fenêtre principale et charge le frontend statique
  */
 
-const { app, BrowserWindow, protocol, net } = require('electron');
+const { app, BrowserWindow, protocol, net, Menu } = require('electron');
 const path = require('path');
 
 // Enregistrer le schéma 'local' comme privilégié pour contourner CORS
@@ -25,11 +25,14 @@ const loadURL = serve({ directory: path.join(__dirname, '..', 'frontend', 'out')
  * Crée la fenêtre principale de l'application
  */
 async function createWindow() {
+  Menu.setApplicationMenu(null);
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1024,
     minHeight: 700,
+    autoHideMenuBar: true,
     show: false,
     title: 'Friperie de Luxe',
     webPreferences: {
@@ -72,11 +75,11 @@ app.whenReady().then(async () => {
         if (process.platform === 'win32' && filePath.startsWith('/')) {
           filePath = filePath.substring(1);
         }
-        
+
         // En prod vs dev, le chemin racine du dossier uploads peut changer.
         // Par défaut (dev ou root), on prend le dossier parent du dossier electron
         let absolutePath = path.join(__dirname, '..', filePath);
-        
+
         if (app.isPackaged) {
           absolutePath = path.join(process.resourcesPath, filePath);
         }
@@ -92,6 +95,10 @@ app.whenReady().then(async () => {
     });
 
     // 1. Initialiser le backend (connexion DB)
+    // On définit le chemin de la base de données dans le dossier utilisateur pour éviter les erreurs "read-only" de l'ASAR
+    process.env.DB_PATH = path.join(app.getPath('userData'), 'friperie_luxe.db');
+    console.log('[ELECTRON] Base de données SQLite sera stockée dans:', process.env.DB_PATH);
+    
     const backendPath = 'file://' + path.join(__dirname, '../backend/dist/index.js').replace(/\\/g, '/');
     const backend = await import(backendPath);
 

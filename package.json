@@ -19,6 +19,14 @@
     "electron-builder": "^26.0.12"
   },
   "dependencies": {
-    "electron-serve": "^3.0.1"
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.9.0",
+    "dotenv": "^17.4.2",
+    "electron-serve": "^3.0.1",
+    "joi": "^18.1.2",
+    "multer": "^2.1.1",
+    "mysql2": "^3.22.1",
+    "pdfkit": "^0.18.0",
+    "uuid": "^14.0.0"
   }
 }

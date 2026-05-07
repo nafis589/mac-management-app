@@ -19,13 +19,16 @@
     {
       "from": "uploads/",
       "to": "uploads/",
-      "filter": ["**/*"]
+      "filter": [
+        "**/*"
+      ]
     }
   ],
   "mac": {
     "target": "dmg",
     "icon": "build/icon.icns",
-    "category": "public.app-category.business"
+    "category": "public.app-category.business",
+    "darkModeSupport": true
   },
   "win": {
     "target": "nsis",

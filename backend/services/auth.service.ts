@@ -26,20 +26,37 @@ export class AuthService {
       const lockDurationMs = CONSTANTS.LOCKOUT_DURATION_MS || 5 * 60 * 1000;
       const maxAttempts = CONSTANTS.MAX_LOGIN_ATTEMPTS || 5;
 
-      const sql = db.isSQLite
-        ? `SELECT COUNT(*) as attempts 
+      let rows: any;
+
+      if (db.isSQLite) {
+        // SQLite : on calcule le timestamp côté JS pour éviter la concaténation dynamique
+        const sinceTimestamp = new Date(Date.now() - lockDurationMs)
+          .toISOString()
+          .replace('T', ' ')
+          .substring(0, 19);
+
+        const result = await db.query(
+          `SELECT COUNT(*) as attempts 
            FROM logs 
            WHERE action = 'LOGIN_FAILED' 
            AND json_extract(details, '$.username') = ?
-           AND created_at > datetime('now', '-' || ? || ' seconds')`
-        : `SELECT COUNT(*) as attempts 
+           AND created_at > ?`,
+          [username, sinceTimestamp]
+        );
+        rows = result[0];
+      } else {
+        // MySQL
+        const result = await db.query(
+          `SELECT COUNT(*) as attempts 
            FROM logs 
            WHERE action = 'LOGIN_FAILED' 
            AND JSON_EXTRACT(details, '$.username') = ?
-           AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)`;
+           AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)`,
+          [username, Math.floor(lockDurationMs / 1000)]
+        );
+        rows = result[0];
+      }
 
-      const [rows]: any = await db.query(sql, [username, Math.floor(lockDurationMs / 1000)]);
-      
       const attempts = rows[0]?.attempts || 0;
       return attempts >= maxAttempts;
     } catch (error) {

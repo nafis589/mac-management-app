@@ -19,8 +19,8 @@ let pool: any;
 if (isElectron) {
   // Mode Electron : SQLite
   
-  // Chemin relatif dans l'app
-  const dbPath = path.join(__dirname, '../../friperie_luxe.db');
+  // Chemin relatif dans l'app ou chemin utilisateur défini par main.js
+  const dbPath = process.env.DB_PATH || path.join(__dirname, '../../friperie_luxe.db');
   console.log('[DATABASE] Resolved SQLite dbPath:', dbPath);
   const db = new Database(dbPath);
   
