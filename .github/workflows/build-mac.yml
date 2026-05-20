@@ -38,10 +38,10 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      - name: Build Mac
+      - name: Build Mac (Intel + Apple Silicon)
         run: npm run build:mac -- --publish=never
 
-      - name: Upload .dmg artifact
+      - name: Upload .dmg artifacts
         uses: actions/upload-artifact@v4
         with:
           name: friperie-de-luxe-mac-dmg
