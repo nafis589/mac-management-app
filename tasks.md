@@ -400,7 +400,7 @@ const amountDue = totalAmount - amountPaid;
 
 ---
 
-### TASK-DELIV-007 : Modal Détails Livraison (MODIFIÉ)
+### [x] TASK-DELIV-007 : Modal Détails Livraison (MODIFIÉ)
 **Priorité** : MOYENNE  
 **Durée** : 3h
 
@@ -414,7 +414,7 @@ const amountDue = totalAmount - amountPaid;
 
 3. PAIEMENT (NOUVEAU) :
    <div className="border-t pt-4">
-     <h3 className="font-semibold mb-3">💰 Paiement</h3>
+     <h3 className="font-semibold mb-3">Paiement</h3>
      
      <div className="bg-gray-50 p-4 rounded space-y-2">
        <div className="flex justify-between">

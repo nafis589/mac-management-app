@@ -51,6 +51,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { DeliveryDetailsView } from "@/components/DeliveryDetailsView"
 
 export interface Delivery {
   id: number
@@ -111,6 +112,37 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
     pageIndex: 0,
     pageSize: 20,
   })
+
+  // Delivery details view state
+  const [selectedDeliveryId, setSelectedDeliveryId] = React.useState<number | null>(null)
+  const [isDetailsViewOpen, setIsDetailsViewOpen] = React.useState(false)
+  const [deliveryDetails, setDeliveryDetails] = React.useState<any | null>(null)
+
+  const handleOpenDetails = async (deliveryId: number) => {
+    setSelectedDeliveryId(deliveryId);
+    try {
+      const res = await (window as any).electron.invoke("deliveries:getById", deliveryId);
+      if (res?.success) {
+         setDeliveryDetails(res.data);
+         setIsDetailsViewOpen(true);
+      } else {
+         // fallback: use list item data
+         const found = initialDeliveries.find(d => d.id === deliveryId);
+         if (found) {
+            setDeliveryDetails(found);
+            setIsDetailsViewOpen(true);
+         }
+      }
+    } catch(e) {
+      console.error(e);
+      // fallback
+      const found = initialDeliveries.find(d => d.id === deliveryId);
+      if (found) {
+         setDeliveryDetails(found);
+         setIsDetailsViewOpen(true);
+      }
+    }
+  }
 
   // Calculate Stats
   const stats = React.useMemo(() => {
@@ -250,13 +282,11 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href={`#`} onClick={(e) => { e.preventDefault(); alert("TODO: Détails livraison"); }}>
-                    Voir détails
-                  </Link>
+                <DropdownMenuItem onClick={() => handleOpenDetails(row.original.id)}>
+                  Voir détails
                 </DropdownMenuItem>
                 {row.original.status !== 'DELIVERED' && row.original.status !== 'CANCELLED' && (
-                  <DropdownMenuItem onClick={() => alert("TODO: Changer statut")}>
+                  <DropdownMenuItem onClick={() => handleOpenDetails(row.original.id)}>
                     Mettre à jour statut
                   </DropdownMenuItem>
                 )}
@@ -316,18 +346,20 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
 
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 w-full min-w-0">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Livraisons</h1>
-            <p className="text-muted-foreground text-sm">
-              Gérez vos livraisons, suivez l'état d'expédition et les paiements restants.
-            </p>
+      {!isDetailsViewOpen ? (
+        <>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Livraisons</h1>
+                <p className="text-muted-foreground text-sm">
+                  Gérez vos livraisons, suivez l'état d'expédition et les paiements restants.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Stats Cards */}
+          {/* Stats Cards */}
       <TooltipProvider>
         <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs xl:grid-cols-4 dark:*:data-[slot=card]:bg-card">
           <Card>
@@ -582,6 +614,20 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
           </div>
         </CardContent>
       </Card>
+      </>
+      ) : (
+        <DeliveryDetailsView 
+          open={isDetailsViewOpen} 
+          delivery={deliveryDetails} 
+          onClose={() => setIsDetailsViewOpen(false)} 
+          onRefresh={() => {
+            setIsDetailsViewOpen(false);
+            if ((window as any).__refreshDeliveries) {
+              (window as any).__refreshDeliveries();
+            }
+          }} 
+        />
+      )}
     </div>
   )
 }
