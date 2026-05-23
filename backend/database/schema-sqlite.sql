@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     movement_type VARCHAR(10) NOT NULL,
     quantity INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
+    description VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
@@ -122,7 +123,7 @@ CREATE INDEX IF NOT EXISTS idx_backup_created_at ON backups(created_at);
 CREATE TABLE IF NOT EXISTS deliveries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     reference VARCHAR(50) NOT NULL UNIQUE,
-    sale_id INTEGER NOT NULL,
+    sale_id INTEGER,
     customer_name VARCHAR(255) NOT NULL,
     customer_phone VARCHAR(50),
     delivery_address TEXT,
@@ -133,6 +134,7 @@ CREATE TABLE IF NOT EXISTS deliveries (
     payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     notes TEXT,
+    pending_sale_data TEXT,
     created_by INTEGER,
     delivered_by INTEGER,
     delivered_at DATETIME,

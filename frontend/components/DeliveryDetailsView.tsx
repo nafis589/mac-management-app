@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
   User, Phone, MapPin, CalendarDays, Clock, FileText,
-  AlertCircle, CheckCircle2, Loader2, Printer, Check
+  AlertCircle, CheckCircle2, Loader2, Printer, Check, ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +16,16 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { resolveImageUrl } from "@/lib/api";
 
 const DELIVERY_STATUS_MAP: Record<string, string> = {
@@ -42,6 +52,7 @@ export function DeliveryDetailsView({
   const [status, setStatus] = React.useState<string>(delivery?.status || "PENDING");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+  const [confirmModalState, setConfirmModalState] = React.useState<{ isOpen: boolean, action: 'deliver' | 'cancel' | null }>({ isOpen: false, action: null });
 
   React.useEffect(() => {
     if (delivery && open) {
@@ -54,7 +65,7 @@ export function DeliveryDetailsView({
     try {
       const userStr = localStorage.getItem("fc_user");
       if (userStr) return JSON.parse(userStr);
-    } catch {}
+    } catch { }
     return { id: 1 }; // Fallback
   }, []);
 
@@ -82,15 +93,16 @@ export function DeliveryDetailsView({
   const amountDue = Math.max(0, totalAmt - paidAmt);
 
   const handleAddPayment = async () => {
-    const amount = safeNum(paymentAmount);
-    if (!amount || amount <= 0 || amount > amountDue) {
+    const inputAmount = safeNum(paymentAmount);
+    const amountToPay = Math.min(inputAmount, amountDue);
+    if (!inputAmount || inputAmount <= 0) {
       toast.error('Montant invalide');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await (window as any).electron.invoke('deliveries:addPayment', delivery.id, amount, currentUser.id);
+      const res = await (window as any).electron.invoke('deliveries:addPayment', delivery.id, amountToPay, currentUser.id);
       if (res.success) {
         toast.success('Paiement enregistré');
         setPaymentAmount("");
@@ -123,9 +135,8 @@ export function DeliveryDetailsView({
     }
   };
 
-  const markDelivered = () => handleUpdateStatus("DELIVERED");
-  const cancelDelivery = async () => {
-    if (!confirm("Voulez-vous vraiment annuler cette livraison ?")) return;
+  const executeMarkDelivered = () => handleUpdateStatus("DELIVERED");
+  const executeCancelDelivery = async () => {
     setIsUpdatingStatus(true);
     try {
       const res = await (window as any).electron.invoke('deliveries:cancel', delivery.id, "Annulation manuelle", currentUser.id);
@@ -142,19 +153,33 @@ export function DeliveryDetailsView({
     }
   };
 
+  const markDeliveredClick = () => setConfirmModalState({ isOpen: true, action: 'deliver' });
+  const cancelDeliveryClick = () => setConfirmModalState({ isOpen: true, action: 'cancel' });
+
+  const confirmAction = () => {
+    if (confirmModalState.action === 'deliver') {
+      executeMarkDelivered();
+    } else if (confirmModalState.action === 'cancel') {
+      executeCancelDelivery();
+    }
+    setConfirmModalState({ isOpen: false, action: null });
+  };
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6 w-full max-w-6xl mx-auto pb-10">
+    <div className="flex flex-col lg:flex-row w-full h-[calc(100vh-140px)] -mt-2">
       {/* Left Column (Main Details & Products) */}
-      <div className="flex-1 flex flex-col gap-6 bg-white p-6 rounded-xl border border-gray-200 shadow-sm relative min-h-[600px]">
+      <div className="flex-1 flex flex-col pr-6 relative">
         {/* Header */}
-        <div className="flex justify-between items-start border-b border-gray-100 pb-4">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Livraison {delivery.reference || "N/A"}
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Créée le {safeFormatDate(delivery.created_at, "dd MMM yyyy à HH:mm")}
-            </p>
+        <div className="flex justify-between items-start shrink-0 pb-4 border-b border-gray-100">
+          <div className="flex items-start gap-3">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 leading-none">
+                Livraison {delivery.reference || "N/A"}
+              </h2>
+              <p className="text-sm text-gray-500 mt-2">
+                Créée le {safeFormatDate(delivery.created_at, "dd MMM yyyy à HH:mm")}
+              </p>
+            </div>
           </div>
           <div>
             <Select value={status} onValueChange={handleUpdateStatus} disabled={isUpdatingStatus || delivery.status === 'DELIVERED' || delivery.status === 'CANCELLED'}>
@@ -164,36 +189,34 @@ export function DeliveryDetailsView({
               <SelectContent>
                 <SelectItem value="PENDING">En attente</SelectItem>
                 <SelectItem value="IN_PROGRESS">En cours</SelectItem>
-                <SelectItem value="DELIVERED">Livrée</SelectItem>
-                <SelectItem value="CANCELLED">Annulée</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         {/* Product List Header */}
-        <div className="flex justify-between text-sm text-gray-500 font-medium border-b border-gray-100 pb-2 mt-4">
+        <div className="flex justify-between text-sm text-gray-500 font-medium pb-2 pt-2 shrink-0">
           <span className="w-1/2">Détails produits</span>
           <span className="w-1/4 text-center">Quantité</span>
           <span className="w-1/4 text-right">Prix</span>
         </div>
 
         {/* Product List */}
-        <div className="flex-1 space-y-4 py-2">
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-2">
           {Array.isArray(delivery.items) && delivery.items.map((item: any) => (
             <div key={item.id} className="flex items-center justify-between group">
               <div className="flex items-center gap-4 w-1/2">
-                <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden shrink-0 border border-gray-200/50">
+                <div className="w-14 h-14 bg-gray-100 rounded-md overflow-hidden shrink-0 border border-gray-200/50">
                   {item.product_image ? (
                     <img src={resolveImageUrl(item.product_image)} alt={item.product_name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300">
-                      <FileText className="h-6 w-6" />
+                      <FileText className="h-5 w-5" />
                     </div>
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-semibold text-gray-800 text-base leading-tight">{item.product_name || "Produit"}</span>
+                  <span className="font-semibold text-gray-800 text-[15px] leading-tight">{item.product_name || "Produit"}</span>
                   <span className="text-sm text-gray-500 mt-0.5">{item.product_reference || ""}</span>
                 </div>
               </div>
@@ -201,7 +224,7 @@ export function DeliveryDetailsView({
                 {safeNum(item.quantity)}
               </div>
               <div className="w-1/4 text-right font-semibold text-gray-900">
-                {safeNum(item.price).toLocaleString("fr-FR")} F
+                {(safeNum(item.unit_price || item.price) * safeNum(item.quantity)).toLocaleString("fr-FR")} F
               </div>
             </div>
           ))}
@@ -211,20 +234,20 @@ export function DeliveryDetailsView({
         </div>
 
         {/* Sticky Footer for Buttons */}
-        <div className="mt-auto pt-6 border-t border-gray-100 flex items-center justify-between gap-4">
+        <div className="shrink-0 pt-4 mt-auto border-t border-gray-100 flex items-center justify-between gap-4">
           <Button variant="outline" className="text-gray-600 hover:text-gray-900 border-gray-200 shadow-sm" onClick={onClose}>
             Fermer
           </Button>
 
           <div className="flex gap-3">
             {delivery.status !== 'DELIVERED' && delivery.status !== 'CANCELLED' && (
-              <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shadow-sm" onClick={cancelDelivery} disabled={isUpdatingStatus}>
+              <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 shadow-sm" onClick={cancelDeliveryClick} disabled={isUpdatingStatus}>
                 Annuler
               </Button>
             )}
             {delivery.status !== 'DELIVERED' && delivery.status !== 'CANCELLED' && (
-              <Button 
-                onClick={markDelivered} 
+              <Button
+                onClick={markDeliveredClick}
                 disabled={isUpdatingStatus}
                 className="bg-gray-900 hover:bg-gray-800 text-white shadow-sm"
               >
@@ -236,39 +259,36 @@ export function DeliveryDetailsView({
       </div>
 
       {/* Right Column (Summary & Payment) */}
-      <div className="lg:w-[350px] shrink-0 flex flex-col gap-6">
-        
+      <div className="lg:w-[380px] shrink-0 flex flex-col gap-6 pl-6 border-l border-gray-100 overflow-y-auto">
+
         {/* Info Client Card */}
-        <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-bold text-lg text-gray-900 mb-4 pb-2 border-b border-gray-200">
+        <div>
+          <h3 className="font-bold text-lg text-gray-900 mb-4 pb-2 border-b border-gray-100">
             Informations client
           </h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500 mb-0.5">Nom complet</p>
-              <p className="font-medium text-gray-900">{delivery.customer_name || "N/A"}</p>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Nom complet</span>
+              <span className="font-medium text-gray-900 text-right">{delivery.customer_name || "N/A"}</span>
             </div>
-            <div>
-              <p className="text-sm text-gray-500 mb-0.5">Téléphone</p>
-              <p className="font-medium text-gray-900">{delivery.customer_phone || "N/A"}</p>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Téléphone</span>
+              <span className="font-medium text-gray-900 text-right">{delivery.customer_phone || "N/A"}</span>
             </div>
-            <div>
-              <p className="text-sm text-gray-500 mb-0.5">Adresse de livraison</p>
-              <p className="font-medium text-gray-900">{delivery.delivery_address || "N/A"}</p>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Adresse</span>
+              <span className="font-medium text-gray-900 text-right max-w-[200px] truncate" title={delivery.delivery_address}>{delivery.delivery_address || "N/A"}</span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500 mb-0.5">Date prévue</p>
-                <p className="font-medium text-gray-900">{safeFormatDate(delivery.delivery_date, "dd MMM yyyy")}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 mb-0.5">Créneau</p>
-                <p className="font-medium text-gray-900 capitalize">{delivery.delivery_time || "Non précisé"}</p>
-              </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Date prévue</span>
+              <span className="font-medium text-gray-900 text-right">{safeFormatDate(delivery.delivery_date, "dd MMM yyyy")}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-500">Créneau</span>
+              <span className="font-medium text-gray-900 text-right capitalize">{delivery.delivery_time || "Non précisé"}</span>
             </div>
             {delivery.notes && (
               <div className="pt-2">
-                <p className="text-sm text-gray-500 mb-0.5">Notes</p>
                 <p className="text-sm italic text-gray-700 bg-amber-50 p-3 rounded-md border border-amber-100/50">{delivery.notes}</p>
               </div>
             )}
@@ -276,11 +296,11 @@ export function DeliveryDetailsView({
         </div>
 
         {/* Payment Card */}
-        <div className="bg-gray-50/50 p-6 rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-bold text-lg text-gray-900 mb-4 pb-2 border-b border-gray-200">
+        <div className="mt-auto pt-4">
+          <h3 className="font-bold text-lg text-gray-900 mb-4 pb-2 border-b border-gray-100">
             Paiement
           </h3>
-          
+
           <div className="space-y-3">
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Total commande</span>
@@ -288,18 +308,18 @@ export function DeliveryDetailsView({
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Déjà payé</span>
-              <span className="text-emerald-600 font-medium">{paidAmt.toLocaleString("fr-FR")} F</span>
+              <span className="font-medium">{paidAmt.toLocaleString("fr-FR")} F</span>
             </div>
-            <div className="border-t border-gray-200/60 pt-3 flex justify-between items-center text-base font-bold">
+            <div className="border-t border-gray-100 pt-3 flex justify-between items-center text-base font-bold">
               <span className="text-gray-900">Reste dû</span>
               <span className={amountDue > 0 ? 'text-red-600' : 'text-emerald-600'}>
                 {amountDue.toLocaleString("fr-FR")} F
               </span>
             </div>
           </div>
-          
+
           {amountDue > 0 && (
-            <div className="mt-5 pt-5 border-t border-gray-200/60">
+            <div className="mt-5 pt-5 border-t border-gray-100">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Encaisser (tout ou partie)
               </label>
@@ -307,24 +327,53 @@ export function DeliveryDetailsView({
                 <Input
                   type="number"
                   value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(safeNum(e.target.value) || "")}
-                  placeholder={`Max ${amountDue.toLocaleString()} F`}
-                  max={amountDue}
-                  className="bg-white border-gray-300 focus-visible:ring-1 focus-visible:ring-gray-900"
+                  onChange={(e) => setPaymentAmount(e.target.value === "" ? "" : safeNum(e.target.value))}
+                  className="bg-white focus-visible:ring-0 focus-visible:border-gray-900 focus-visible:border"
                 />
-                <Button 
-                  onClick={handleAddPayment} 
+                <Button
+                  onClick={handleAddPayment}
                   disabled={isSubmitting || !paymentAmount}
                   className="bg-gray-900 hover:bg-gray-800 text-white shrink-0"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Encaisser"}
                 </Button>
               </div>
+              {safeNum(paymentAmount) > amountDue && (
+                <p className="mt-2 text-sm text-black font-medium">
+                  Remets au client: {(safeNum(paymentAmount) - amountDue).toLocaleString("fr-FR")} F
+                </p>
+              )}
             </div>
           )}
         </div>
 
       </div>
+
+      {/* Confirmation Modal */}
+      <AlertDialog open={confirmModalState.isOpen} onOpenChange={(v) => setConfirmModalState(s => ({ ...s, isOpen: v }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmModalState.action === 'deliver' ? "Confirmer la livraison" : "Annuler la livraison"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmModalState.action === 'deliver'
+                ? "Êtes-vous sûr de vouloir marquer cette livraison comme livrée ? Cette action est définitive."
+                : "Êtes-vous sûr de vouloir annuler cette livraison ? Cette action est définitive et ne peut pas être annulée."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmAction}
+              className={confirmModalState.action === 'cancel' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-gray-900 hover:bg-gray-800 text-white"}
+            >
+              {confirmModalState.action === 'deliver' ? "Oui, marquer livrée" : "Oui, annuler"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

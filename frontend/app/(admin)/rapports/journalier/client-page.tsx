@@ -83,8 +83,7 @@ export default function DailyReportClient({
     return <div className="p-8 text-center text-muted-foreground">Aucune donnée trouvée ou erreur serveur.</div>;
   }
 
-  const { nbSales, totalRevenue, profit, revenueByPayment, topItems, hourlySales } = initialData;
-  const panierMoyen = nbSales > 0 ? totalRevenue / nbSales : 0;
+  const { nbSales, totalRevenue, totalPurchaseCost, profit, revenueByPayment, topItems, hourlySales } = initialData;
 
   // Formatting utils
   const formatFCFA = (val: number) => {
@@ -256,7 +255,7 @@ export default function DailyReportClient({
                 <Wallet className="size-4" />
               </div>
             </CardTitle>
-            <CardDescription>Panier Moyen</CardDescription>
+            <CardDescription>Coût achat produits vendus</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-1 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2 overflow-hidden">
@@ -264,16 +263,16 @@ export default function DailyReportClient({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
-                      {formatFCFA(panierMoyen)}
+                      {formatFCFA(totalPurchaseCost || 0)}
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{formatFCFA(panierMoyen)}</p>
+                    <p>{formatFCFA(totalPurchaseCost || 0)}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <p className="text-muted-foreground text-sm">Dépense par client</p>
+            <p className="text-muted-foreground text-sm">Aujourd'hui</p>
           </CardContent>
         </Card>
       </div>

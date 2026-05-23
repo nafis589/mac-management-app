@@ -600,9 +600,9 @@ function registerHandlers(backend) {
   // DELIVERIES (7 handlers)
   // ═══════════════════════════════════════════
 
-  ipcMain.handle('deliveries:create', async (_event, deliveryData, saleId, totalAmount, amountPaid, userId) => {
+  ipcMain.handle('deliveries:create', async (_event, deliveryData, cartItems, saleData, amountPaid, userId) => {
     try {
-      const data = await backend.deliveries.create(deliveryData, saleId, totalAmount, amountPaid, userId);
+      const data = await backend.deliveries.create(deliveryData, cartItems, saleData, amountPaid, userId);
       return { success: true, data };
     } catch (error) {
       console.error('[IPC] deliveries:create error:', error.message);

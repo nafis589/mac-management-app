@@ -241,5 +241,46 @@ export const salesService = {
 
   async delete(id: number | string) {
     throw new Error('Les ventes ne peuvent pas être supprimées physiquement, utilisez cancelSale');
+  },
+
+  /**
+   * Crée une vente officielle à partir d'une livraison finalisée.
+   * IMPORTANT : Cette méthode NE touche PAS au stock ni aux stock_movements,
+   * car le stock a déjà été réservé lors de la création de la livraison.
+   * 
+   * @param saleData - Données de la vente (total_amount, discount_type, discount_value, final_amount, payment_methods, cashier_id)
+   * @param items - Articles [{productId, quantity, unitPrice}]
+   * @param connection - Connexion de transaction existante (fournie par deliveriesService.tryFinalizeSale)
+   */
+  async createSaleFromDelivery(saleData: any, items: any[], connection: any) {
+    const reference = await this.generateReference();
+
+    // Insert sale
+    const [saleResult]: any = await connection.query(
+      `INSERT INTO sales (reference, total_amount, discount_type, discount_value, final_amount, payment_methods, cashier_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        reference,
+        saleData.total_amount,
+        saleData.discount_type || null,
+        saleData.discount_value || null,
+        saleData.final_amount,
+        typeof saleData.payment_methods === 'string' ? saleData.payment_methods : JSON.stringify(saleData.payment_methods || []),
+        saleData.cashier_id
+      ]
+    );
+    const saleId = saleResult.insertId;
+
+    // Insert sale items (sans toucher au stock)
+    for (const item of items) {
+      const productId = item.productId || item.product_id;
+      await connection.query(
+        `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)`,
+        [saleId, productId, item.quantity, item.unitPrice || item.unit_price]
+      );
+    }
+
+    logger.info(`Vente ${reference} créée depuis livraison (sans mouvement de stock, déjà réservé)`);
+    return { success: true, saleId, reference };
   }
 };

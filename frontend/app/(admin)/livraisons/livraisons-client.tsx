@@ -56,7 +56,7 @@ import { DeliveryDetailsView } from "@/components/DeliveryDetailsView"
 export interface Delivery {
   id: number
   reference: string
-  sale_id: number
+  sale_id: number | null
   customer_name: string
   customer_phone: string
   delivery_address: string
@@ -69,6 +69,7 @@ export interface Delivery {
   notes: string
   created_at: string
   delivered_at: string | null
+  sale_reference?: string | null
 }
 
 function preventPaginationNavigation(event: React.MouseEvent<HTMLAnchorElement>) {

@@ -11,6 +11,12 @@ export const reportsService = {
       const dailyStatsQuery = pool.isSQLite ? `SELECT 
           COUNT(*) as nbSales,
           COALESCE(SUM(s.final_amount), 0) as totalRevenue,
+          COALESCE(SUM((
+            SELECT COALESCE(SUM(p.purchase_price * si.quantity), 0)
+            FROM sale_items si
+            JOIN products p ON si.product_id = p.id
+            WHERE si.sale_id = s.id
+          )), 0) as totalPurchaseCost,
           COALESCE(SUM(s.final_amount - (
             SELECT COALESCE(SUM(p.purchase_price * si.quantity), 0)
             FROM sale_items si
@@ -21,6 +27,12 @@ export const reportsService = {
          WHERE date(s.created_at) = ? AND s.cancelled_at IS NULL` : `SELECT 
           COUNT(*) as nbSales,
           COALESCE(SUM(s.final_amount), 0) as totalRevenue,
+          COALESCE(SUM((
+            SELECT COALESCE(SUM(p.purchase_price * si.quantity), 0)
+            FROM sale_items si
+            JOIN products p ON si.product_id = p.id
+            WHERE si.sale_id = s.id
+          )), 0) as totalPurchaseCost,
           COALESCE(SUM(s.final_amount - (
             SELECT COALESCE(SUM(p.purchase_price * si.quantity), 0)
             FROM sale_items si
@@ -123,6 +135,7 @@ export const reportsService = {
       return {
         nbSales: stats[0].nbSales || 0,
         totalRevenue: stats[0].totalRevenue || 0,
+        totalPurchaseCost: stats[0].totalPurchaseCost || 0,
         profit: stats[0].profit || 0,
         revenueByPayment,
         topItems,

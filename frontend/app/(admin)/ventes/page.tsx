@@ -103,22 +103,19 @@ export default function CaissePage() {
         cashier_id: cashierId,
       }
 
-      const items = cart.map(item => ({
+      const cartItems = cart.map(item => ({
         productId: item.id,
         quantity: item.cartQuantity,
         unitPrice: Number(item.sale_price)
       }))
 
-      // 1. Créer vente
-      const data = await createSale(saleData, items)
-      const saleId = data.saleId || data.id
-
-      // 2. Créer livraison
+      // Créer livraison SANS créer de vente
+      // La vente sera créée automatiquement quand status=DELIVERED ET payment_status=PAID
       await (window as any).electron.invoke(
         'deliveries:create',
         deliveryData,
-        saleId,
-        finalTotal,
+        cartItems,
+        saleData,
         amountPaid,
         cashierId
       );
@@ -127,7 +124,7 @@ export default function CaissePage() {
       if (amountDue > 0) {
         toast.warning(`Reste à payer : ${amountDue.toLocaleString()} FCFA`);
       } else {
-        toast.success('Commande payée intégralement !');
+        toast.success('Commande enregistrée !');
       }
 
       handleNewSale()

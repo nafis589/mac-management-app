@@ -43,40 +43,23 @@ async function ensureSQLiteSchemaAndSeedAdmin() {
   logger.info('SQLite schema ensured');
 
   // 1b) Migrations: ensure deliveries table and sales delivery columns
+  // NOTE: The deliveries table is already created by schema-sqlite.sql with sale_id nullable
+  // and pending_sale_data. This block is for backwards-compatibility with older databases.
+
+  // Add pending_sale_data column to deliveries if missing (migration for existing DBs)
   try {
-    (pool as any).exec(`
-      CREATE TABLE IF NOT EXISTS deliveries (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        reference VARCHAR(50) NOT NULL UNIQUE,
-        sale_id INTEGER NOT NULL,
-        customer_name VARCHAR(255) NOT NULL,
-        customer_phone VARCHAR(50),
-        delivery_address TEXT,
-        delivery_date DATE,
-        delivery_time VARCHAR(20),
-        total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
-        amount_paid DECIMAL(10, 2) NOT NULL DEFAULT 0,
-        payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
-        status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-        notes TEXT,
-        created_by INTEGER,
-        delivered_by INTEGER,
-        delivered_at DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE RESTRICT,
-        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-        FOREIGN KEY (delivered_by) REFERENCES users(id) ON DELETE SET NULL
-      );
-      CREATE INDEX IF NOT EXISTS idx_deliveries_reference ON deliveries(reference);
-      CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
-      CREATE INDEX IF NOT EXISTS idx_deliveries_payment_status ON deliveries(payment_status);
-      CREATE INDEX IF NOT EXISTS idx_deliveries_delivery_date ON deliveries(delivery_date);
-      CREATE INDEX IF NOT EXISTS idx_deliveries_sale_id ON deliveries(sale_id);
-    `);
-    logger.info('Deliveries table migration ensured');
-  } catch (migErr: any) {
-    logger.warn('Deliveries table migration (may already exist):', migErr.message);
+    (pool as any).exec(`ALTER TABLE deliveries ADD COLUMN pending_sale_data TEXT`);
+    logger.info('Added pending_sale_data column to deliveries');
+  } catch (e: any) {
+    // Column already exists - ignore
+  }
+
+  // Add description column to stock_movements if missing
+  try {
+    (pool as any).exec(`ALTER TABLE stock_movements ADD COLUMN description VARCHAR(255)`);
+    logger.info('Added description column to stock_movements');
+  } catch (e: any) {
+    // Column already exists - ignore
   }
 
   // Add delivery columns to sales if missing
