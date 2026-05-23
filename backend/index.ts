@@ -43,15 +43,67 @@ async function ensureSQLiteSchemaAndSeedAdmin() {
   logger.info('SQLite schema ensured');
 
   // 1b) Migrations: ensure deliveries table and sales delivery columns
-  // NOTE: The deliveries table is already created by schema-sqlite.sql with sale_id nullable
-  // and pending_sale_data. This block is for backwards-compatibility with older databases.
-
-  // Add pending_sale_data column to deliveries if missing (migration for existing DBs)
   try {
-    (pool as any).exec(`ALTER TABLE deliveries ADD COLUMN pending_sale_data TEXT`);
-    logger.info('Added pending_sale_data column to deliveries');
-  } catch (e: any) {
-    // Column already exists - ignore
+    // Migration pour SQLite : recréer la table pour enlever le NOT NULL sur sale_id
+    (pool as any).exec(`
+      PRAGMA foreign_keys=off;
+      BEGIN TRANSACTION;
+
+      CREATE TABLE IF NOT EXISTS deliveries_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference VARCHAR(50) NOT NULL UNIQUE,
+        sale_id INTEGER,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(50),
+        delivery_address TEXT,
+        delivery_date DATE,
+        delivery_time VARCHAR(20),
+        total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+        amount_paid DECIMAL(10, 2) NOT NULL DEFAULT 0,
+        payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
+        status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+        notes TEXT,
+        pending_sale_data TEXT,
+        created_by INTEGER,
+        delivered_by INTEGER,
+        delivered_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE RESTRICT,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (delivered_by) REFERENCES users(id) ON DELETE SET NULL
+      );
+
+      -- Si la table deliveries existait déjà
+      INSERT INTO deliveries_new (
+        id, reference, sale_id, customer_name, customer_phone, delivery_address,
+        delivery_date, delivery_time, total_amount, amount_paid, payment_status,
+        status, notes, created_by, delivered_by, delivered_at, created_at, updated_at
+      )
+      SELECT 
+        id, reference, sale_id, customer_name, customer_phone, delivery_address,
+        delivery_date, delivery_time, total_amount, amount_paid, payment_status,
+        status, notes, created_by, delivered_by, delivered_at, created_at, updated_at
+      FROM deliveries;
+
+      DROP TABLE deliveries;
+      ALTER TABLE deliveries_new RENAME TO deliveries;
+
+      CREATE INDEX IF NOT EXISTS idx_deliveries_reference ON deliveries(reference);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_payment_status ON deliveries(payment_status);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_delivery_date ON deliveries(delivery_date);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_sale_id ON deliveries(sale_id);
+
+      COMMIT;
+      PRAGMA foreign_keys=on;
+    `);
+    logger.info('Deliveries table migration (recreation) ensured');
+  } catch (migErr: any) {
+    logger.warn('Deliveries table migration failed/already done:', migErr.message);
+    try {
+      (pool as any).exec('ROLLBACK; PRAGMA foreign_keys=on;');
+    } catch(e) {}
   }
 
   // Add description column to stock_movements if missing

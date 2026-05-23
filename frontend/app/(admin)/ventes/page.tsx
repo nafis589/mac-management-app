@@ -111,7 +111,7 @@ export default function CaissePage() {
 
       // Créer livraison SANS créer de vente
       // La vente sera créée automatiquement quand status=DELIVERED ET payment_status=PAID
-      await (window as any).electron.invoke(
+      const res = await (window as any).electron.invoke(
         'deliveries:create',
         deliveryData,
         cartItems,
@@ -119,6 +119,10 @@ export default function CaissePage() {
         amountPaid,
         cashierId
       );
+
+      if (!res?.success) {
+        throw new Error(res?.error || 'Erreur inconnue côté serveur');
+      }
 
       const amountDue = finalTotal - amountPaid;
       if (amountDue > 0) {

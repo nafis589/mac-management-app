@@ -202,7 +202,7 @@ export function DeliveryDetailsView({
         </div>
 
         {/* Product List */}
-        <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-2">
+        <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {Array.isArray(delivery.items) && delivery.items.map((item: any) => (
             <div key={item.id} className="flex items-center justify-between group">
               <div className="flex items-center gap-4 w-1/2">
