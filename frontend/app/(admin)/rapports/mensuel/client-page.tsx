@@ -26,6 +26,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { exportReportToPDF } from "@/lib/api";
 
 const MONTHS = [
@@ -202,11 +203,20 @@ export default function MonthlyReportClient({
             </CardTitle>
             <CardDescription>Chiffre d'Affaires</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {formatFCFA(totalRevenue)}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {formatFCFA(totalRevenue)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatFCFA(totalRevenue)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">CA total du mois sélectionné</p>
           </CardContent>
@@ -221,14 +231,23 @@ export default function MonthlyReportClient({
             </CardTitle>
             <CardDescription>Évolution vs Mois Précédent</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className={cn(
-                "font-medium text-3xl tabular-nums leading-none tracking-tight",
-                isPositiveEvolution ? "" : ""
-              )}>
-                {isPositiveEvolution ? "+" : ""}{evolutionPercentage.toFixed(1)}%
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn(
+                      "font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default",
+                      isPositiveEvolution ? "" : ""
+                    )}>
+                      {isPositiveEvolution ? "+" : ""}{evolutionPercentage.toFixed(1)}%
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{isPositiveEvolution ? "+" : ""}{evolutionPercentage.toFixed(1)}%</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Par rapport au mois précédent ({formatFCFA(previousMonthRevenue)})</p>
           </CardContent>
@@ -243,11 +262,20 @@ export default function MonthlyReportClient({
             </CardTitle>
             <CardDescription>Total Ventes</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {totalSales}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {totalSales}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{totalSales}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Produits écoulés ce mois-ci</p>
           </CardContent>

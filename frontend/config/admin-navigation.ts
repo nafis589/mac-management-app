@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   Package,
   ShoppingCart,
+  Truck,
   Users,
 } from "lucide-react";
 
@@ -76,6 +77,11 @@ export const sidebarItems: NavGroup[] = [
         title: "Ventes",
         url: "/ventes",
         icon: ShoppingCart,
+      },
+      {
+        title: "Livraisons",
+        url: "/livraisons",
+        icon: Truck,
       },
     ],
   },

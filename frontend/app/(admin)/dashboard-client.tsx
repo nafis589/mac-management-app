@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardAction } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getDailyReport, getMonthlyReport, getSalesHistory, getProducts } from "@/lib/api";
@@ -149,73 +150,111 @@ export default function DashboardClient() {
 
       {/* 2. Row 1 : KPIs du jour */}
       <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs xl:grid-cols-4 dark:*:data-[slot=card]:bg-card">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                <CreditCard className="size-4" />
+        <TooltipProvider>
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                  <CreditCard className="size-4" />
+                </div>
+              </CardTitle>
+              <CardDescription>CA Aujourd'hui</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1 w-full overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate max-w-full">
+                      {formatCurrency(caAujourdhui)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatCurrency(caAujourdhui)}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </CardTitle>
-            <CardDescription>CA Aujourd'hui</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{formatCurrency(caAujourdhui)}</div>
-            </div>
-            <p className="text-muted-foreground text-sm">Chiffre d'affaires généré</p>
-          </CardContent>
-        </Card>
+              <p className="text-muted-foreground text-sm truncate">Chiffre d'affaires généré</p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                <Package className="size-4" />
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                  <Package className="size-4" />
+                </div>
+              </CardTitle>
+              <CardDescription>Nombre de Ventes</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1 w-full overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate max-w-full">
+                      {nbVentes}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{nbVentes}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </CardTitle>
-            <CardDescription>Nombre de Ventes</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{nbVentes}</div>
-            </div>
-            <p className="text-muted-foreground text-sm">Tickets émis</p>
-          </CardContent>
-        </Card>
+              <p className="text-muted-foreground text-sm truncate">Tickets émis</p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                <TrendingUp className="size-4" />
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                  <TrendingUp className="size-4" />
+                </div>
+              </CardTitle>
+              <CardDescription>Panier Moyen</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1 w-full overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate max-w-full">
+                      {formatCurrency(panierMoyen)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatCurrency(panierMoyen)}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </CardTitle>
-            <CardDescription>Panier Moyen</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{formatCurrency(panierMoyen)}</div>
-            </div>
-            <p className="text-muted-foreground text-sm">Dépense par client</p>
-          </CardContent>
-        </Card>
+              <p className="text-muted-foreground text-sm truncate">Dépense par client</p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
-                <AlertTriangle className="size-4" />
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <div className="flex size-7 items-center justify-center rounded-lg border bg-muted text-muted-foreground">
+                  <AlertTriangle className="size-4" />
+                </div>
+              </CardTitle>
+              <CardDescription>Alertes Stock</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-1 w-full overflow-hidden">
+              <div className="flex flex-wrap items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate max-w-full">
+                      {alertesStock}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{alertesStock}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
-            </CardTitle>
-            <CardDescription>Alertes Stock</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{alertesStock}</div>
-            </div>
-            <p className="text-muted-foreground text-sm">Articles critiques en stock</p>
-          </CardContent>
-        </Card>
+              <p className="text-muted-foreground text-sm truncate">Articles critiques en stock</p>
+            </CardContent>
+          </Card>
+        </TooltipProvider>
       </div>
 
       {/* 3. Row 2 : Pipeline Activity Style CA Chart */}

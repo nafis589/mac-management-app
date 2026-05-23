@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { Search, Plus, Loader2, Tag, Maximize } from "lucide-react"
+import { Search, Loader2, Tag } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { Product, getPhotoUrl, usePosStore } from "@/lib/pos-store"
-
-import { useRouter } from "next/navigation"
+import { Product } from "@/lib/pos-store"
+import { getProducts, getCategories } from "@/lib/api"
+import { ProductCard } from "./product-card"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import MiniSearch from "minisearch"
+import localforage from "localforage"
 
 interface Category {
   id: number
@@ -23,32 +25,65 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-import { getProducts, getCategories } from "@/lib/api"
-
 export function ProductGrid() {
-  const router = useRouter()
-  const { cart, addToCart } = usePosStore()
   const [products, setProducts] = React.useState<Product[]>([])
   const [categories, setCategories] = React.useState<Category[]>([])
   const [selectedCategory, setSelectedCategory] = React.useState<string>("all")
   const [search, setSearch] = React.useState("")
-  const debouncedSearch = useDebounce(search, 300)
+  const debouncedSearch = useDebounce(search, 150) // Reduced debounce for faster feel with Minisearch
   const [isLoading, setIsLoading] = React.useState(true)
+  const [isBackgroundFetching, setIsBackgroundFetching] = React.useState(false)
+
+  // Memoize MiniSearch instance
+  const miniSearch = React.useMemo(() => new MiniSearch({
+    fields: ['name', 'reference'],
+    storeFields: ['id'], // We just need ID to map back, or we could just use filtered products directly
+    searchOptions: {
+      prefix: true,
+      fuzzy: 0.2 // allow slight typos
+    }
+  }), [])
 
   const fetchProducts = React.useCallback(async () => {
     try {
-      setIsLoading(true)
+      if (products.length === 0) setIsLoading(true)
+      
+      // Load from IndexedDB first for instant UI
+      const cached = await localforage.getItem<Product[]>('pos_products')
+      if (cached && cached.length > 0) {
+        setProducts(cached)
+        miniSearch.removeAll()
+        miniSearch.addAll(cached)
+        setIsLoading(false)
+        setIsBackgroundFetching(true)
+      }
+
+      // Fetch fresh data in background
       const data = await getProducts()
-      if (data) setProducts(data)
-    } catch { /* silently fail */ } finally {
+      if (data) {
+        setProducts(data)
+        miniSearch.removeAll()
+        miniSearch.addAll(data)
+        await localforage.setItem('pos_products', data)
+      }
+    } catch (e) {
+      console.error("Failed to fetch products:", e)
+    } finally {
       setIsLoading(false)
+      setIsBackgroundFetching(false)
     }
-  }, [])
+  }, [miniSearch, products.length])
 
   const fetchCategoriesList = React.useCallback(async () => {
     try {
+      const cached = await localforage.getItem<Category[]>('pos_categories')
+      if (cached) setCategories(cached)
+
       const data = await getCategories()
-      if (data) setCategories(data)
+      if (data) {
+        setCategories(data)
+        await localforage.setItem('pos_categories', data)
+      }
     } catch { /* silently fail */ }
   }, [])
 
@@ -65,18 +100,43 @@ export function ProductGrid() {
 
   const filteredProducts = React.useMemo(() => {
     let filtered = products.filter(p => p.quantity > 0)
+
     if (selectedCategory !== "all") {
       filtered = filtered.filter(p => String(p.category_id) === selectedCategory || p.category_name === selectedCategory)
     }
+
     if (debouncedSearch) {
-      const lower = debouncedSearch.toLowerCase()
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(lower) ||
-        p.reference.toLowerCase().includes(lower)
-      )
+      // Use Minisearch for lightning fast filtering
+      const results = miniSearch.search(debouncedSearch)
+      const matchedIds = new Set(results.map(r => r.id))
+      filtered = filtered.filter(p => matchedIds.has(p.id))
     }
-    return filtered.slice(0, 60)
-  }, [products, debouncedSearch, selectedCategory])
+
+    return filtered
+  }, [products, debouncedSearch, selectedCategory, miniSearch])
+
+  // --- Virtualization logic ---
+  const parentRef = React.useRef<HTMLDivElement>(null)
+  const [cols, setCols] = React.useState(4)
+
+  React.useEffect(() => {
+    const updateCols = () => {
+      const width = window.innerWidth
+      if (width >= 1280) setCols(4)
+      else if (width >= 768) setCols(3)
+      else setCols(2)
+    }
+    updateCols()
+    window.addEventListener('resize', updateCols)
+    return () => window.removeEventListener('resize', updateCols)
+  }, [])
+
+  const rowVirtualizer = useVirtualizer({
+    count: Math.ceil(filteredProducts.length / cols),
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 240, // Approximate height of a product card including gaps
+    overscan: 4, // Render 4 rows above/below to prevent blank spaces when scrolling fast
+  })
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
@@ -90,6 +150,9 @@ export function ProductGrid() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {isBackgroundFetching && (
+            <Loader2 className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300 animate-spin" />
+          )}
         </div>
       </div>
 
@@ -110,6 +173,7 @@ export function ProductGrid() {
           </button>
           {categories.map((cat) => {
             const count = products.filter(p => p.quantity > 0 && (String(p.category_id) === String(cat.id) || p.category_name === cat.name)).length
+            if (count === 0) return null; // Don't show empty categories to save space
             return (
               <button
                 key={cat.id}
@@ -129,14 +193,19 @@ export function ProductGrid() {
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-4">
+      {/* Virtualized Grid */}
+      <div 
+        ref={parentRef} 
+        className="flex-1 overflow-y-auto px-4 pb-6 scrollbar-hidden"
+        style={{ contain: 'strict' }} // Optimizes paint performance
+      >
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex flex-col gap-2">
-                <div className="aspect-[4/3] rounded-xl bg-gray-200 animate-pulse"></div>
-                <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded"></div>
-                <div className="h-4 w-1/2 bg-gray-200 animate-pulse rounded"></div>
+              <div key={i} className="flex flex-col gap-2 p-2 bg-white rounded-2xl border border-gray-100">
+                <div className="aspect-[4/3] rounded-xl bg-gray-100 animate-pulse"></div>
+                <div className="h-4 w-3/4 bg-gray-100 animate-pulse rounded mt-2"></div>
+                <div className="h-4 w-1/2 bg-gray-100 animate-pulse rounded"></div>
               </div>
             ))}
           </div>
@@ -146,57 +215,43 @@ export function ProductGrid() {
             <p className="text-sm">Aucun produit trouvé</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 pb-6">
-            {filteredProducts.map(product => {
-              const photoUrl = getPhotoUrl(product.photos)
-              const inCart = cart.find(i => i.id === product.id)?.cartQuantity || 0
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const fromIndex = virtualRow.index * cols;
+              const toIndex = Math.min(fromIndex + cols, filteredProducts.length);
+              const rowItems = filteredProducts.slice(fromIndex, toIndex);
 
               return (
                 <div
-                  key={product.id}
-                  className="bg-white rounded-2xl border border-gray-100 group relative p-2"
+                  key={virtualRow.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualRow.size}px`,
+                    transform: `translateY(${virtualRow.start}px)`,
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                    gap: '16px',
+                    paddingBottom: '16px' // spacing between rows
+                  }}
                 >
-                  {/* Image */}
-                  <div 
-                    className="aspect-[4/3] bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
-                    onClick={() => router.push(`/produits/detail?id=${product.id}&viewOnly=true`)}
-                  >
-
-                    {photoUrl ? (
-                      <img src={photoUrl} alt={product.name} className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        <Tag className="h-8 w-8" />
-                      </div>
-                    )}
-                    {inCart > 0 && (
-                      <div className="absolute top-2 left-2 h-6 min-w-6 px-1.5 rounded-full flex items-center justify-center text-[11px] font-bold text-primary-foreground shadow-md bg-primary">
-                        {inCart}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info */}
-                  <div className="pt-3 px-1 pb-1">
-                    <h3 className="font-medium text-gray-900 text-sm leading-tight line-clamp-1 mb-1">{product.name}</h3>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="font-bold text-gray-900 text-sm">
-                        {Number(product.sale_price).toLocaleString("fr-FR")} F
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors active:scale-95 shrink-0"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                  {rowItems.map(product => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
                 </div>
               )
             })}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }

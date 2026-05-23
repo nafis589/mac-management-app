@@ -44,6 +44,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { resolveImageUrl, addStock } from "@/lib/api"
 
@@ -233,9 +234,20 @@ export function StockClient({
             </CardTitle>
             <CardDescription>Total Produits</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{initialDashboard.totalProducts}</div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {initialDashboard.totalProducts}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{initialDashboard.totalProducts}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Références uniques</p>
           </CardContent>
@@ -249,11 +261,20 @@ export function StockClient({
             </CardTitle>
             <CardDescription>Valeur du Stock</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {Number(initialDashboard.stockValue).toLocaleString("fr-FR")} FCFA
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {Number(initialDashboard.stockValue).toLocaleString("fr-FR")} FCFA
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{Number(initialDashboard.stockValue).toLocaleString("fr-FR")} FCFA</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Basé sur le prix d&apos;achat</p>
           </CardContent>
@@ -267,11 +288,20 @@ export function StockClient({
             </CardTitle>
             <CardDescription className={initialDashboard.lowStockCount > 0 ? "text-red-600/80 dark:text-red-400/80" : ""}>Produits en Alerte</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className={cn("font-medium text-3xl tabular-nums leading-none tracking-tight", initialDashboard.lowStockCount > 0 && "text-red-600 dark:text-red-400")}>
-                {initialDashboard.lowStockCount}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className={cn("font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default", initialDashboard.lowStockCount > 0 && "text-red-600 dark:text-red-400")}>
+                      {initialDashboard.lowStockCount}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{initialDashboard.lowStockCount}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className={cn("text-muted-foreground text-sm", initialDashboard.lowStockCount > 0 && "text-red-600/80 dark:text-red-400/80")}>
               En dessous du seuil minimum

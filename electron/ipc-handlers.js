@@ -597,7 +597,81 @@ function registerHandlers(backend) {
   });
 
   // ═══════════════════════════════════════════
-  console.log('📡 IPC handlers enregistrés : 48 canaux');
+  // DELIVERIES (7 handlers)
+  // ═══════════════════════════════════════════
+
+  ipcMain.handle('deliveries:create', async (_event, deliveryData, saleId, totalAmount, amountPaid, userId) => {
+    try {
+      const data = await backend.deliveries.create(deliveryData, saleId, totalAmount, amountPaid, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:create error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:getAll', async (_event, filters) => {
+    try {
+      const data = await backend.deliveries.getAll(filters);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:getAll error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:getById', async (_event, id) => {
+    try {
+      const data = await backend.deliveries.getById(id);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:getById error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:addPayment', async (_event, id, amount, userId) => {
+    try {
+      const data = await backend.deliveries.addPayment(id, amount, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:addPayment error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:updateStatus', async (_event, id, status, userId) => {
+    try {
+      const data = await backend.deliveries.updateStatus(id, status, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:updateStatus error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:cancel', async (_event, id, reason, userId) => {
+    try {
+      const data = await backend.deliveries.cancel(id, reason, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:cancel error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('deliveries:getStats', async (_event) => {
+    try {
+      const data = await backend.deliveries.getStats();
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:getStats error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  console.log('📡 IPC handlers enregistrés : 55 canaux');
 }
 
 module.exports = { registerHandlers };

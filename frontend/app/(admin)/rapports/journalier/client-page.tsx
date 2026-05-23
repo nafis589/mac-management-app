@@ -17,7 +17,7 @@ import {
   Banknote,
   Smartphone
 } from "lucide-react";
-import { Area, CartesianGrid, ComposedChart, XAxis, YAxis, Tooltip } from "recharts";
+import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
@@ -34,6 +34,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import { exportReportToPDF } from "@/lib/api";
 
@@ -173,9 +174,20 @@ export default function DailyReportClient({
             </CardTitle>
             <CardDescription>Total Ventes</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{nbSales}</div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {nbSales}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{nbSales}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Tickets encaissés</p>
           </CardContent>
@@ -190,11 +202,20 @@ export default function DailyReportClient({
             </CardTitle>
             <CardDescription>Chiffre d'Affaires</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {formatFCFA(totalRevenue)}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {formatFCFA(totalRevenue)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatFCFA(totalRevenue)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Chiffre d'affaires brut</p>
           </CardContent>
@@ -209,11 +230,20 @@ export default function DailyReportClient({
             </CardTitle>
             <CardDescription>Bénéfice Estimé</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {formatFCFA(profit)}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {formatFCFA(profit)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatFCFA(profit)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Marge brute calculée</p>
           </CardContent>
@@ -228,11 +258,20 @@ export default function DailyReportClient({
             </CardTitle>
             <CardDescription>Panier Moyen</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">
-                {formatFCFA(panierMoyen)}
-              </div>
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                      {formatFCFA(panierMoyen)}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{formatFCFA(panierMoyen)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <p className="text-muted-foreground text-sm">Dépense par client</p>
           </CardContent>

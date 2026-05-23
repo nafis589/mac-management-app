@@ -92,7 +92,7 @@ export const salesService = {
 
       // Update sale
       await connection.query(
-        'UPDATE sales SET cancelled_at = NOW(), cancel_reason = ? WHERE id = ?',
+        'UPDATE sales SET cancelled_at = CURRENT_TIMESTAMP, cancel_reason = ? WHERE id = ?',
         [reason, saleId]
       );
 

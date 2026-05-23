@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Plus, Minus, X, RotateCcw, ShoppingBag, Tag, ChevronRight } from "lucide-react"
+import { Plus, Minus, X, RotateCcw, ShoppingBag, Tag, ChevronRight, Truck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -26,9 +26,10 @@ import { useRouter } from "next/navigation"
 
 interface CartSidebarProps {
   onEncaisser: () => void
+  onLivraison: () => void
 }
 
-export function CartSidebar({ onEncaisser }: CartSidebarProps) {
+export function CartSidebar({ onEncaisser, onLivraison }: CartSidebarProps) {
   const router = useRouter()
   const {
     cart,
@@ -285,11 +286,12 @@ export function CartSidebar({ onEncaisser }: CartSidebarProps) {
         <div className="flex gap-2 pt-1">
           <Button
             variant="outline"
-            className="flex-1 h-11 rounded-xl text-sm font-semibold border-border bg-card hover:bg-muted"
+            className="flex-1 h-11 rounded-xl text-sm font-semibold border-border bg-card hover:bg-muted flex items-center justify-center gap-2"
             disabled={cart.length === 0}
-            onClick={() => toast.info("Commande enregistrée")}
+            onClick={onLivraison}
           >
-            Attente
+            <Truck className="h-4 w-4" />
+            Livraison
           </Button>
           <button
             className="flex-1 h-11 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center"

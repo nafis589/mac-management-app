@@ -82,7 +82,16 @@ const ALLOWED_CHANNELS = [
   'backup:create',
   'backup:restore',
   'backup:getHistory',
-  'backup:scheduleAutoBackup'
+  'backup:scheduleAutoBackup',
+
+  // Deliveries
+  'deliveries:create',
+  'deliveries:getAll',
+  'deliveries:getById',
+  'deliveries:addPayment',
+  'deliveries:updateStatus',
+  'deliveries:cancel',
+  'deliveries:getStats'
 ];
 
 contextBridge.exposeInMainWorld('electron', {

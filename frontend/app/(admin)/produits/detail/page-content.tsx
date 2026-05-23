@@ -177,9 +177,15 @@ export default function ProductDetailPageContent() {
 
   const handleDelete = async () => {
     try {
-      // NOTE: Here we should pass the current user's ID if we want to log who deleted it.
-      // For now, assuming no current user ID or we can fetch it. Let's pass undefined.
-      await deleteProduct(id);
+      const userStr = localStorage.getItem("fc_user");
+      let userId = undefined;
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          userId = user.id;
+        } catch {}
+      }
+      await deleteProduct(id, userId);
       toast.success('Produit supprimé');
       router.push('/produits');
     } catch {

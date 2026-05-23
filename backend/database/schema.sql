@@ -59,8 +59,12 @@ CREATE TABLE IF NOT EXISTS products (
     CONSTRAINT fk_product_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
     CONSTRAINT fk_product_brand FOREIGN KEY (brand_id) REFERENCES brands(id) ON DELETE RESTRICT,
     CONSTRAINT fk_product_archived_by FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
-    INDEX idx_product_reference (reference),
-    INDEX idx_product_created_at (created_at)
+    INDEX idx_products_reference (reference),
+    INDEX idx_product_created_at (created_at),
+    INDEX idx_products_category (category_id),
+    INDEX idx_products_brand (brand_id),
+    INDEX idx_products_name (name),
+    INDEX idx_products_status (status)
 );
 
 CREATE TABLE IF NOT EXISTS stock_movements (
@@ -72,7 +76,9 @@ CREATE TABLE IF NOT EXISTS stock_movements (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_stock_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
     CONSTRAINT fk_stock_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
-    INDEX idx_stock_created_at (created_at)
+    INDEX idx_stock_created_at (created_at),
+    INDEX idx_stock_product (product_id),
+    INDEX idx_stock_date (created_at)
 );
 
 CREATE TABLE IF NOT EXISTS sales (
@@ -90,7 +96,9 @@ CREATE TABLE IF NOT EXISTS sales (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_sale_cashier FOREIGN KEY (cashier_id) REFERENCES users(id) ON DELETE RESTRICT,
     INDEX idx_sale_reference (reference),
-    INDEX idx_sale_created_at (created_at)
+    INDEX idx_sale_created_at (created_at),
+    INDEX idx_sales_date (created_at),
+    INDEX idx_sales_cashier (cashier_id)
 );
 
 CREATE TABLE IF NOT EXISTS sale_items (

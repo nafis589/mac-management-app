@@ -19,6 +19,7 @@ import { UsersService } from './services/users.service.js';
 import { reportsService } from './services/reports.service.js';
 import { categoriesService } from './services/categories.service.js';
 import { brandsService } from './services/brands.service.js';
+import { deliveriesService } from './services/deliveries.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,57 @@ async function ensureSQLiteSchemaAndSeedAdmin() {
   }
   (pool as any).exec(schemaSql);
   logger.info('SQLite schema ensured');
+
+  // 1b) Migrations: ensure deliveries table and sales delivery columns
+  try {
+    (pool as any).exec(`
+      CREATE TABLE IF NOT EXISTS deliveries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference VARCHAR(50) NOT NULL UNIQUE,
+        sale_id INTEGER NOT NULL,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_phone VARCHAR(50),
+        delivery_address TEXT,
+        delivery_date DATE,
+        delivery_time VARCHAR(20),
+        total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+        amount_paid DECIMAL(10, 2) NOT NULL DEFAULT 0,
+        payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
+        status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+        notes TEXT,
+        created_by INTEGER,
+        delivered_by INTEGER,
+        delivered_at DATETIME,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE RESTRICT,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+        FOREIGN KEY (delivered_by) REFERENCES users(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_deliveries_reference ON deliveries(reference);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_payment_status ON deliveries(payment_status);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_delivery_date ON deliveries(delivery_date);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_sale_id ON deliveries(sale_id);
+    `);
+    logger.info('Deliveries table migration ensured');
+  } catch (migErr: any) {
+    logger.warn('Deliveries table migration (may already exist):', migErr.message);
+  }
+
+  // Add delivery columns to sales if missing
+  try {
+    (pool as any).exec(`ALTER TABLE sales ADD COLUMN delivery_required INTEGER DEFAULT 0`);
+    logger.info('Added delivery_required column to sales');
+  } catch (e: any) {
+    // Column already exists - ignore
+  }
+  try {
+    (pool as any).exec(`ALTER TABLE sales ADD COLUMN delivery_id INTEGER`);
+    logger.info('Added delivery_id column to sales');
+  } catch (e: any) {
+    // Column already exists - ignore
+  }
 
   // 2) Seed default admin if missing
   const [existing]: any = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', ['admin']);
@@ -82,6 +134,7 @@ export {
   reportsService as reports,
   categoriesService as categories,
   brandsService as brands,
+  deliveriesService as deliveries,
 };
 
 export default {
@@ -94,4 +147,5 @@ export default {
   reports: reportsService,
   categories: categoriesService,
   brands: brandsService,
+  deliveries: deliveriesService,
 };

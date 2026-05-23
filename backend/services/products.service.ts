@@ -222,7 +222,7 @@ export const productsService = {
       }
 
       await connection.query(
-        'UPDATE products SET status = ?, archived_at = NOW(), archived_by = ? WHERE id = ?',
+        'UPDATE products SET status = ?, archived_at = CURRENT_TIMESTAMP, archived_by = ? WHERE id = ?',
         ['ARCHIVED', userId || null, id]
       );
       

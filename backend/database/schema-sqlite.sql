@@ -117,3 +117,49 @@ CREATE TABLE IF NOT EXISTS backups (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_backup_created_at ON backups(created_at);
+
+-- Deliveries
+CREATE TABLE IF NOT EXISTS deliveries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    reference VARCHAR(50) NOT NULL UNIQUE,
+    sale_id INTEGER NOT NULL,
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(50),
+    delivery_address TEXT,
+    delivery_date DATE,
+    delivery_time VARCHAR(20),
+    total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    amount_paid DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    payment_status VARCHAR(20) NOT NULL DEFAULT 'UNPAID',
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    notes TEXT,
+    created_by INTEGER,
+    delivered_by INTEGER,
+    delivered_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE RESTRICT,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (delivered_by) REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_deliveries_reference ON deliveries(reference);
+CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_deliveries_payment_status ON deliveries(payment_status);
+CREATE INDEX IF NOT EXISTS idx_deliveries_delivery_date ON deliveries(delivery_date);
+CREATE INDEX IF NOT EXISTS idx_deliveries_sale_id ON deliveries(sale_id);
+
+-- Performance Indexes (Products)
+CREATE INDEX IF NOT EXISTS idx_products_category ON products(category_id);
+CREATE INDEX IF NOT EXISTS idx_products_brand ON products(brand_id);
+CREATE INDEX IF NOT EXISTS idx_products_name ON products(name);
+CREATE INDEX IF NOT EXISTS idx_products_reference ON products(reference);
+CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);
+
+-- Performance Indexes (Sales)
+CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(created_at);
+CREATE INDEX IF NOT EXISTS idx_sales_cashier ON sales(cashier_id);
+
+-- Performance Indexes (Stock movements)
+CREATE INDEX IF NOT EXISTS idx_stock_product ON stock_movements(product_id);
+CREATE INDEX IF NOT EXISTS idx_stock_date ON stock_movements(created_at);
+

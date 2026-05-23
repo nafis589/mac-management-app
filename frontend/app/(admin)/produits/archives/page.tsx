@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Area, AreaChart } from "recharts"
 import { toast } from "sonner"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -355,10 +356,21 @@ export default function ArchivesPage() {
             </CardTitle>
             <CardDescription>Total archivés</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
             {isLoading ? <Skeleton className="h-9 w-20" /> : (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{stats.total_archived}</div>
+              <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                        {stats.total_archived}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{stats.total_archived}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
             <p className="text-muted-foreground text-sm">Produits supprimés</p>
@@ -374,10 +386,21 @@ export default function ArchivesPage() {
             </CardTitle>
             <CardDescription>Stock perdu</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
             {isLoading ? <Skeleton className="h-9 w-20" /> : (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{stats.lost_quantity}</div>
+              <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                        {stats.lost_quantity}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{stats.lost_quantity}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
             <p className="text-muted-foreground text-sm">Unités perdues au total</p>
@@ -393,10 +416,21 @@ export default function ArchivesPage() {
             </CardTitle>
             <CardDescription>Valeur achat perdue</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
             {isLoading ? <Skeleton className="h-9 w-20" /> : (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{formatCurrency(Number(stats.lost_stock_value))}</div>
+              <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                        {formatCurrency(Number(stats.lost_stock_value))}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{formatCurrency(Number(stats.lost_stock_value))}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
             <p className="text-muted-foreground text-sm">Coût d&apos;acquisition perdu</p>
@@ -412,10 +446,21 @@ export default function ArchivesPage() {
             </CardTitle>
             <CardDescription>CA potentiel perdu</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-1">
+          <CardContent className="flex flex-col gap-1 overflow-hidden">
             {isLoading ? <Skeleton className="h-9 w-20" /> : (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="font-medium text-3xl tabular-nums leading-none tracking-tight">{formatCurrency(Number(stats.lost_potential_revenue))}</div>
+              <div className="flex flex-wrap items-center gap-2 overflow-hidden">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="font-medium text-3xl tabular-nums leading-none tracking-tight truncate w-full cursor-default">
+                        {formatCurrency(Number(stats.lost_potential_revenue))}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{formatCurrency(Number(stats.lost_potential_revenue))}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
             <p className="text-muted-foreground text-sm">Revenus potentiels manqués</p>

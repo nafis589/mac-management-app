@@ -12,6 +12,7 @@ import {
 import { usePosStore } from "@/lib/pos-store"
 import { ProductGrid } from "@/components/pos/product-grid"
 import { CartSidebar } from "@/components/pos/cart-sidebar"
+import { DeliveryModal } from "@/components/DeliveryModal"
 import { generateTicket, TicketSaleData, TicketItemData } from "@/lib/ticket-generator"
 import { createSale } from "@/lib/api"
 
@@ -22,6 +23,7 @@ export default function CaissePage() {
   const [isSuccessOpen, setIsSuccessOpen] = React.useState(false)
   const [saleReference, setSaleReference] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [showDeliveryModal, setShowDeliveryModal] = React.useState(false)
 
   const [amountGiven, setAmountGiven] = React.useState<string>("")
 
@@ -48,7 +50,7 @@ export default function CaissePage() {
         try {
           const userObj = JSON.parse(userStr);
           cashierId = userObj.id || userObj.userId || 1;
-        } catch (e) {}
+        } catch (e) { }
       }
 
       const saleData = {
@@ -59,7 +61,7 @@ export default function CaissePage() {
         payment_methods: finalPaymentMethods,
         cashier_id: cashierId,
       }
-      
+
       const items = cart.map(item => ({
         productId: item.id,
         quantity: item.cartQuantity,
@@ -67,7 +69,7 @@ export default function CaissePage() {
       }))
 
       const data = await createSale(saleData, items)
-      
+
       setSaleReference(data.reference)
       setIsPaymentOpen(false)
       setIsSuccessOpen(true)
@@ -76,6 +78,63 @@ export default function CaissePage() {
       toast.error(error.message)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDeliveryOrder = async (deliveryData: any, amountPaid: number) => {
+    try {
+      if (cart.length === 0) { toast.error("Le panier est vide"); return }
+
+      const userStr = localStorage.getItem("fc_user");
+      let cashierId = 1;
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          cashierId = userObj.id || userObj.userId || 1;
+        } catch (e) { }
+      }
+
+      const saleData = {
+        total_amount: subTotal,
+        discount_type: discountType,
+        discount_value: discountValue,
+        final_amount: finalTotal,
+        payment_methods: { ESPECES: amountPaid },
+        cashier_id: cashierId,
+      }
+
+      const items = cart.map(item => ({
+        productId: item.id,
+        quantity: item.cartQuantity,
+        unitPrice: Number(item.sale_price)
+      }))
+
+      // 1. Créer vente
+      const data = await createSale(saleData, items)
+      const saleId = data.saleId || data.id
+
+      // 2. Créer livraison
+      await (window as any).electron.invoke(
+        'deliveries:create',
+        deliveryData,
+        saleId,
+        finalTotal,
+        amountPaid,
+        cashierId
+      );
+
+      const amountDue = finalTotal - amountPaid;
+      if (amountDue > 0) {
+        toast.warning(`Reste à payer : ${amountDue.toLocaleString()} FCFA`);
+      } else {
+        toast.success('Commande payée intégralement !');
+      }
+
+      handleNewSale()
+      setShowDeliveryModal(false)
+      if ((window as any).__posRefreshProducts) (window as any).__posRefreshProducts()
+    } catch (error: any) {
+      toast.error('Erreur création livraison : ' + error.message)
     }
   }
 
@@ -121,8 +180,18 @@ export default function CaissePage() {
 
       {/* RIGHT: Cart (40%) */}
       <div className="w-2/5 h-full border-l border-border/50">
-        <CartSidebar onEncaisser={() => setIsPaymentOpen(true)} />
+        <CartSidebar
+          onEncaisser={() => setIsPaymentOpen(true)}
+          onLivraison={() => setShowDeliveryModal(true)}
+        />
       </div>
+
+      <DeliveryModal
+        open={showDeliveryModal}
+        totalAmount={finalTotal}
+        onClose={() => setShowDeliveryModal(false)}
+        onConfirm={handleDeliveryOrder}
+      />
 
       {/* Payment Modal */}
       <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
@@ -134,7 +203,7 @@ export default function CaissePage() {
 
           <div className="flex items-center justify-between p-4 rounded-xl mb-2 bg-gray-50">
             <span className="font-medium text-gray-700">Montant à régler</span>
-            <span className="text-xl font-black text-gray-900">{finalTotal.toLocaleString("fr-FR")} F cfa</span>
+            <span className="text-xl font-black text-gray-900">{finalTotal.toLocaleString("fr-FR")} FCFA</span>
           </div>
 
           <div className="space-y-4">
@@ -150,7 +219,7 @@ export default function CaissePage() {
               {(parseFloat(amountGiven) || 0) > finalTotal && (
                 <div className="flex justify-between p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
                   <span>Monnaie à rendre :</span>
-                  <span className="font-bold">{(parseFloat(amountGiven) - finalTotal).toLocaleString("fr-FR")} F cfa</span>
+                  <span className="font-bold">{(parseFloat(amountGiven) - finalTotal).toLocaleString("fr-FR")} FCFA</span>
                 </div>
               )}
             </div>
@@ -173,7 +242,7 @@ export default function CaissePage() {
 
       {/* Success Modal */}
       <Dialog open={isSuccessOpen} onOpenChange={(open) => { if (open) setIsSuccessOpen(true); }}>
-        <DialogContent 
+        <DialogContent
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           className="sm:max-w-sm [&>button]:hidden text-center overflow-hidden"
