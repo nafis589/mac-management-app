@@ -584,3 +584,95 @@ export async function getBackupHistory(): Promise<any> {
   }
   return httpGet("/backup/history");
 }
+
+// ═══════════════════════════════════════════
+// BUDGET
+// ═══════════════════════════════════════════
+
+export async function getBudgetStats(month: number, year: number): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:getStats", month, year);
+  }
+  return httpGet(`/budget/stats?month=${month}&year=${year}`);
+}
+
+export async function getBudget(month: number, year: number): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:get", month, year);
+  }
+  return httpGet(`/budget?month=${month}&year=${year}`);
+}
+
+export async function createBudget(
+  month: number,
+  year: number,
+  amount: number,
+  userId: number | string
+): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:createOrUpdate", month, year, amount, userId);
+  }
+  return httpPost("/budget", { month, year, amount, userId });
+}
+
+export async function getDailyExpenses(month: number, year: number): Promise<any[]> {
+  if (isElectron()) {
+    return ipcInvoke("budget:getDailyExpenses", month, year);
+  }
+  return httpGet(`/budget/daily?month=${month}&year=${year}`);
+}
+
+export async function getExpenses(filters: Record<string, any> = {}): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:getExpenses", filters);
+  }
+  const query = new URLSearchParams(
+    Object.entries(filters).reduce((acc, [k, v]) => {
+      if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
+      return acc;
+    }, {} as Record<string, string>)
+  ).toString();
+  return httpGet(`/budget/expenses${query ? `?${query}` : ""}`);
+}
+
+export async function addExpense(
+  data: any,
+  userId: number | string
+): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:addExpense", data, userId);
+  }
+  return httpPost("/budget/expenses", { ...data, userId });
+}
+
+export async function updateExpense(
+  id: number,
+  data: any,
+  userId: number | string
+): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:updateExpense", id, data, userId);
+  }
+  return httpPost(`/budget/expenses/${id}`, { ...data, userId });
+}
+
+export async function deleteExpense(
+  id: number,
+  userId: number | string
+): Promise<any> {
+  if (isElectron()) {
+    return ipcInvoke("budget:deleteExpense", id, userId);
+  }
+  return httpPost(`/budget/expenses/${id}/delete`, { userId });
+}
+
+// ═══════════════════════════════════════════
+// DELIVERIES — BADGE
+// ═══════════════════════════════════════════
+
+export async function getPendingDeliveriesCount(): Promise<number> {
+  if (isElectron()) {
+    return ipcInvoke("deliveries:getPendingCount");
+  }
+  return httpGet("/deliveries/pending-count");
+}

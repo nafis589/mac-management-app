@@ -20,6 +20,7 @@ import { reportsService } from './services/reports.service.js';
 import { categoriesService } from './services/categories.service.js';
 import { brandsService } from './services/brands.service.js';
 import { deliveriesService } from './services/deliveries.service.js';
+import { budgetService } from './services/budget.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -106,6 +107,81 @@ async function ensureSQLiteSchemaAndSeedAdmin() {
     } catch(e) {}
   }
 
+  // Budget tables (budgets + expenses)
+  try {
+    (pool as any).exec(`
+      CREATE TABLE IF NOT EXISTS budgets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        planned_amount REAL NOT NULL,
+        actual_expenses REAL DEFAULT 0,
+        created_by INTEGER NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(month, year),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        budget_id INTEGER,
+        date TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        source TEXT DEFAULT 'BUDGET',
+        created_by INTEGER NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (budget_id) REFERENCES budgets(id),
+        FOREIGN KEY (created_by) REFERENCES users(id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+      CREATE INDEX IF NOT EXISTS idx_expenses_budget ON expenses(budget_id);
+    `);
+    logger.info('Budget tables (budgets + expenses) ensured');
+  } catch (e: any) {
+    logger.warn('Budget tables migration error:', e.message);
+  }
+
+  // Migration 005: drop category column + relax source constraint on expenses
+  try {
+    const [tableInfo]: any = await pool.query("SELECT name FROM pragma_table_info('expenses') WHERE name = 'category'");
+    const hasCategoryCol = Array.isArray(tableInfo) && tableInfo.length > 0;
+    if (hasCategoryCol) {
+      (pool as any).exec(`
+        PRAGMA foreign_keys=off;
+        BEGIN TRANSACTION;
+
+        CREATE TABLE expenses_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          budget_id INTEGER,
+          date TEXT NOT NULL,
+          description TEXT NOT NULL,
+          amount REAL NOT NULL,
+          source TEXT DEFAULT 'BUDGET',
+          created_by INTEGER NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (budget_id) REFERENCES budgets(id),
+          FOREIGN KEY (created_by) REFERENCES users(id)
+        );
+
+        INSERT INTO expenses_new (id, budget_id, date, description, amount, source, created_by, created_at)
+        SELECT id, budget_id, date, description, amount, source, created_by, created_at FROM expenses;
+
+        DROP TABLE expenses;
+        ALTER TABLE expenses_new RENAME TO expenses;
+
+        CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
+        CREATE INDEX IF NOT EXISTS idx_expenses_budget ON expenses(budget_id);
+
+        COMMIT;
+        PRAGMA foreign_keys=on;
+      `);
+      logger.info('Migration 005: expenses table updated (dropped category, relaxed source)');
+    }
+  } catch (migErr: any) {
+    logger.warn('Migration 005 failed:', migErr.message);
+    try { (pool as any).exec('ROLLBACK; PRAGMA foreign_keys=on;'); } catch(e) {}
+  }
+
   // Add description column to stock_movements if missing
   try {
     (pool as any).exec(`ALTER TABLE stock_movements ADD COLUMN description VARCHAR(255)`);
@@ -183,4 +259,5 @@ export default {
   categories: categoriesService,
   brands: brandsService,
   deliveries: deliveriesService,
+  budget: budgetService,
 };

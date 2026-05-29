@@ -235,13 +235,49 @@ export const reportsService = {
          
       const [topProducts]: any = await pool.query(topProductsQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
+      const profitQuery = pool.isSQLite ? `SELECT 
+           COALESCE(SUM(s.final_amount), 0) as total_revenue,
+           COALESCE(SUM(si.quantity * p.purchase_price), 0) as total_purchase_cost,
+           COALESCE(SUM(s.final_amount) - SUM(si.quantity * p.purchase_price), 0) as monthly_profit
+         FROM sales s
+         JOIN sale_items si ON si.sale_id = s.id
+         JOIN products p ON p.id = si.product_id
+         WHERE strftime('%m', s.created_at) = ?
+         AND strftime('%Y', s.created_at) = ?
+         AND s.cancelled_at IS NULL` : `SELECT 
+           COALESCE(SUM(s.final_amount), 0) as total_revenue,
+           COALESCE(SUM(si.quantity * p.purchase_price), 0) as total_purchase_cost,
+           COALESCE(SUM(s.final_amount) - SUM(si.quantity * p.purchase_price), 0) as monthly_profit
+         FROM sales s
+         JOIN sale_items si ON si.sale_id = s.id
+         JOIN products p ON p.id = si.product_id
+         WHERE MONTH(s.created_at) = ?
+         AND YEAR(s.created_at) = ?
+         AND s.cancelled_at IS NULL`;
+
+      const [profitResult]: any = await pool.query(profitQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
+
+      const newStockCostQuery = pool.isSQLite ? `SELECT COALESCE(SUM(purchase_price), 0) as new_stock_cost
+         FROM products
+         WHERE strftime('%m', created_at) = ?
+         AND strftime('%Y', created_at) = ?
+         AND status = 'ACTIVE'` : `SELECT COALESCE(SUM(purchase_price), 0) as new_stock_cost
+         FROM products
+         WHERE MONTH(created_at) = ?
+         AND YEAR(created_at) = ?
+         AND status = 'ACTIVE'`;
+
+      const [newStockResult]: any = await pool.query(newStockCostQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
+
       return {
         totalRevenue: currentRev,
         previousMonthRevenue: prevRev,
         evolutionPercentage: evolutionPct,
         weeklyEvolution: weeklyData,
         dailySalesGraph: dailySales,
-        topProducts
+        topProducts,
+        monthly_profit: profitResult[0].monthly_profit || 0,
+        new_stock_cost: newStockResult[0].new_stock_cost || 0
       };
     } catch (error) {
       logger.error('reportsService.getMonthlyReport error:', error);

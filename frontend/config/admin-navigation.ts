@@ -8,6 +8,7 @@ import {
   ShoppingCart,
   Truck,
   Users,
+  Wallet,
 } from "lucide-react";
 
 export interface NavSubItem {
@@ -82,6 +83,12 @@ export const sidebarItems: NavGroup[] = [
         title: "Livraisons",
         url: "/livraisons",
         icon: Truck,
+      },
+      {
+        title: "Budget",
+        url: "/budget",
+        icon: Wallet,
+        roles: ["admin", "cashier"],
       },
     ],
   },

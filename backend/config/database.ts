@@ -32,7 +32,8 @@ if (isElectron) {
       // Basic translation for MySQL -> SQLite compatibility
       let adaptedSql = sql.replace(/FOR UPDATE/gi, '');
       
-      const isSelect = adaptedSql.trim().toUpperCase().startsWith('SELECT') || adaptedSql.trim().toUpperCase().startsWith('WITH');
+      const trimmed = adaptedSql.trim().toUpperCase();
+      const isSelect = trimmed.startsWith('SELECT') || trimmed.startsWith('WITH') || trimmed.startsWith('PRAGMA');
       const stmt = db.prepare(adaptedSql);
       
       if (isSelect) {

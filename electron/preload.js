@@ -91,7 +91,20 @@ const ALLOWED_CHANNELS = [
   'deliveries:addPayment',
   'deliveries:updateStatus',
   'deliveries:cancel',
-  'deliveries:getStats'
+  'deliveries:getStats',
+  'deliveries:getPendingCount',
+
+  // Budget
+  'budget:create',
+  'budget:createOrUpdate',
+  'budget:getCurrent',
+  'budget:get',
+  'budget:addExpense',
+  'budget:getExpenses',
+  'budget:getStats',
+  'budget:updateExpense',
+  'budget:deleteExpense',
+  'budget:getDailyExpenses',
 ];
 
 contextBridge.exposeInMainWorld('electron', {

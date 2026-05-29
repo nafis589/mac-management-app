@@ -670,8 +670,112 @@ function registerHandlers(backend) {
     }
   });
 
+  ipcMain.handle('deliveries:getPendingCount', async (_event) => {
+    try {
+      const data = await backend.deliveries.getPendingCount();
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] deliveries:getPendingCount error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
   // ═══════════════════════════════════════════
-  console.log('📡 IPC handlers enregistrés : 55 canaux');
+  // BUDGET (6 handlers)
+  // ═══════════════════════════════════════════
+
+  ipcMain.handle('budget:createOrUpdate', async (_event, month, year, amount, userId) => {
+    try {
+      const data = await backend.budget.createOrUpdateBudget(month, year, amount, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:createOrUpdate error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:getCurrent', async (_event) => {
+    try {
+      const data = await backend.budget.getCurrentBudget();
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:getCurrent error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:get', async (_event, month, year) => {
+    try {
+      const data = await backend.budget.getBudget(month, year);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:get error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:addExpense', async (_event, dataObj, userId) => {
+    try {
+      const data = await backend.budget.addExpense(dataObj, userId);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:addExpense error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:getExpenses', async (_event, filters) => {
+    try {
+      const data = await backend.budget.getExpenses(filters);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:getExpenses error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:getStats', async (_event, month, year) => {
+    try {
+      const data = await backend.budget.getStats(month, year);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:getStats error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:updateExpense', async (_event, id, data, userId) => {
+    try {
+      const result = await backend.budget.updateExpense(id, data, userId);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] budget:updateExpense error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:deleteExpense', async (_event, id, userId) => {
+    try {
+      const result = await backend.budget.deleteExpense(id, userId);
+      return { success: true, data: result };
+    } catch (error) {
+      console.error('[IPC] budget:deleteExpense error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('budget:getDailyExpenses', async (_event, month, year) => {
+    try {
+      const data = await backend.budget.getDailyExpenses(month, year);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] budget:getDailyExpenses error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  console.log('📡 IPC handlers enregistrés : 65 canaux');
 }
 
 module.exports = { registerHandlers };

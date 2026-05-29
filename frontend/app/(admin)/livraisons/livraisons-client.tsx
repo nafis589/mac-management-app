@@ -88,11 +88,11 @@ const PAYMENT_STATUS_MAP: Record<string, { label: string, classes: string }> = {
   PAID: { label: "Payé", classes: "bg-green-100 text-green-800 hover:bg-green-200" },
 }
 
-const DELIVERY_STATUS_MAP: Record<string, string> = {
-  PENDING: "En attente",
-  IN_PROGRESS: "En cours",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
+const DELIVERY_STATUS_MAP: Record<string, { label: string, classes: string }> = {
+  PENDING: { label: "En attente", classes: "bg-red-100 text-red-800 hover:bg-red-200" },
+  IN_PROGRESS: { label: "En cours", classes: "bg-orange-100 text-orange-800 hover:bg-orange-200" },
+  DELIVERED: { label: "Livrée", classes: "bg-green-100 text-green-800 hover:bg-green-200" },
+  CANCELLED: { label: "Annulée", classes: "bg-gray-100 text-gray-800 hover:bg-gray-200" },
 }
 
 export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Delivery[] }) {
@@ -227,6 +227,9 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
         id: "reste_du",
         header: "Reste dû",
         cell: ({ row }) => {
+          if (row.original.status === 'CANCELLED') {
+            return <span className="text-gray-400">-</span>;
+          }
           const reste = Math.max(0, row.original.total_amount - row.original.amount_paid);
           const isDelivered = row.original.status === 'DELIVERED';
 
@@ -252,13 +255,22 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
         header: "Livraison",
         cell: ({ row }) => {
           const status = row.original.status;
-          return <span className="text-sm">{DELIVERY_STATUS_MAP[status] || status}</span>;
+          const conf = DELIVERY_STATUS_MAP[status];
+          if (!conf) return <span className="text-sm">{status}</span>;
+          return (
+            <Badge variant="outline" className={`border-transparent ${conf.classes}`}>
+              {conf.label}
+            </Badge>
+          );
         },
       },
       {
         accessorKey: "payment_status",
         header: "Paiement",
         cell: ({ row }) => {
+          if (row.original.status === 'CANCELLED') {
+            return <span className="text-gray-400">-</span>;
+          }
           const conf = PAYMENT_STATUS_MAP[row.original.payment_status];
           if (!conf) return null;
           return (

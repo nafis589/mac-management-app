@@ -403,9 +403,9 @@ export const deliveriesService = {
         throw new Error('Cette livraison est déjà annulée');
       }
 
-      // Mettre à jour le statut de la livraison
+      // Mettre à jour le statut de la livraison et forcer les montants à solder
       await connection.query(
-        `UPDATE deliveries SET status = 'CANCELLED' WHERE id = ?`,
+        `UPDATE deliveries SET status = 'CANCELLED', amount_paid = total_amount, payment_status = 'PAID' WHERE id = ?`,
         [id]
       );
 
@@ -459,6 +459,20 @@ export const deliveriesService = {
       throw error;
     } finally {
       try { connection.release(); } catch (e) { /* may already be released */ }
+    }
+  },
+
+  async getPendingCount(): Promise<number> {
+    try {
+      const [rows]: any = await pool.query(`
+        SELECT COUNT(*) as count FROM deliveries
+        WHERE status IN ('PENDING', 'IN_PROGRESS')
+        OR payment_status IN ('UNPAID', 'PARTIAL')
+      `);
+      return rows[0]?.count ?? 0;
+    } catch (error) {
+      logger.error('deliveriesService.getPendingCount error:', error);
+      throw error;
     }
   },
 

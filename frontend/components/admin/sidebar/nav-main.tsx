@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -26,24 +27,38 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import type { NavGroup, NavMainItem } from "@/config/admin-navigation";
+import { getPendingDeliveriesCount } from "@/lib/api";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
 }
 
+const DELIVERIES_URL = "/livraisons";
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
 const IsComingSoon = () => (
   <span className="ml-auto rounded-md bg-gray-200 px-2 py-1 text-xs dark:text-gray-800">Bientôt</span>
+);
+
+const PendingBadge = ({ count }: { count: number }) => (
+  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white tabular-nums">
+    {count > 99 ? "99+" : count}
+  </span>
 );
 
 const NavItemExpanded = ({
   item,
   isActive,
   isSubmenuOpen,
+  pendingCount,
 }: {
   item: NavMainItem;
   isActive: (url: string, subItems?: NavMainItem["subItems"]) => boolean;
   isSubmenuOpen: (subItems?: NavMainItem["subItems"]) => boolean;
+  pendingCount: number;
 }) => {
+  const showBadge = item.url === DELIVERIES_URL && pendingCount > 0;
+
   return (
     <Collapsible key={item.title} asChild defaultOpen={isSubmenuOpen(item.subItems)} className="group/collapsible">
       <SidebarMenuItem>
@@ -70,6 +85,7 @@ const NavItemExpanded = ({
                 {item.icon && <item.icon />}
                 <span>{item.title}</span>
                 {item.comingSoon && <IsComingSoon />}
+                {showBadge && <PendingBadge count={pendingCount} />}
               </Link>
             </SidebarMenuButton>
           )}
@@ -99,10 +115,14 @@ const NavItemExpanded = ({
 const NavItemCollapsed = ({
   item,
   isActive,
+  pendingCount,
 }: {
   item: NavMainItem;
   isActive: (url: string, subItems?: NavMainItem["subItems"]) => boolean;
+  pendingCount: number;
 }) => {
+  const showBadge = item.url === DELIVERIES_URL && pendingCount > 0;
+
   return (
     <SidebarMenuItem key={item.title}>
       <DropdownMenu>
@@ -111,8 +131,12 @@ const NavItemCollapsed = ({
             disabled={item.comingSoon}
             tooltip={item.title}
             isActive={isActive(item.url, item.subItems)}
+            className="relative"
           >
             {item.icon && <item.icon />}
+            {showBadge && (
+              <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-red-500 ring-1 ring-background" />
+            )}
             <span>{item.title}</span>
             <ChevronRight />
           </SidebarMenuButton>
@@ -144,6 +168,22 @@ const NavItemCollapsed = ({
 export function NavMain({ items }: NavMainProps) {
   const path = usePathname();
   const { state, isMobile } = useSidebar();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const checkPendingDeliveries = async () => {
+    try {
+      const count = await getPendingDeliveriesCount();
+      setPendingCount(typeof count === "number" ? count : 0);
+    } catch {
+      // Silencieux — ne pas casser la sidebar si l'IPC échoue
+    }
+  };
+
+  useEffect(() => {
+    checkPendingDeliveries();
+    const interval = setInterval(checkPendingDeliveries, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   const isItemActive = (url: string, subItems?: NavMainItem["subItems"]) => {
     if (subItems?.length) {
@@ -166,6 +206,7 @@ export function NavMain({ items }: NavMainProps) {
               {group.items.map((item) => {
                 if (state === "collapsed" && !isMobile) {
                   if (!item.subItems) {
+                    const showBadge = item.url === DELIVERIES_URL && pendingCount > 0;
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
@@ -173,19 +214,36 @@ export function NavMain({ items }: NavMainProps) {
                           aria-disabled={item.comingSoon}
                           tooltip={item.title}
                           isActive={isItemActive(item.url)}
+                          className="relative"
                         >
                           <Link prefetch={false} href={item.comingSoon ? "#" : item.url}>
                             {item.icon && <item.icon />}
+                            {showBadge && (
+                              <span className="absolute right-1 top-1 flex h-2 w-2 rounded-full bg-red-500 ring-1 ring-background" />
+                            )}
                             <span>{item.title}</span>
                           </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   }
-                  return <NavItemCollapsed key={item.title} item={item} isActive={isItemActive} />;
+                  return (
+                    <NavItemCollapsed
+                      key={item.title}
+                      item={item}
+                      isActive={isItemActive}
+                      pendingCount={pendingCount}
+                    />
+                  );
                 }
                 return (
-                  <NavItemExpanded key={item.title} item={item} isActive={isItemActive} isSubmenuOpen={isSubmenuOpen} />
+                  <NavItemExpanded
+                    key={item.title}
+                    item={item}
+                    isActive={isItemActive}
+                    isSubmenuOpen={isSubmenuOpen}
+                    pendingCount={pendingCount}
+                  />
                 );
               })}
             </SidebarMenu>

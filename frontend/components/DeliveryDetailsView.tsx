@@ -173,7 +173,7 @@ export function DeliveryDetailsView({
         <div className="flex justify-between items-start shrink-0 pb-4 border-b border-gray-100">
           <div className="flex items-start gap-3">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 leading-none">
+              <h2 className="text-lg font-bold text-gray-900 leading-none">
                 Livraison {delivery.reference || "N/A"}
               </h2>
               <p className="text-sm text-gray-500 mt-2">
@@ -318,7 +318,7 @@ export function DeliveryDetailsView({
             </div>
           </div>
 
-          {amountDue > 0 && (
+          {delivery.status !== 'CANCELLED' && amountDue > 0 && (
             <div className="mt-5 pt-5 border-t border-gray-100">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Encaisser (tout ou partie)
