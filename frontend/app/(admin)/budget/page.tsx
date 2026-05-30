@@ -617,7 +617,7 @@ export default function BudgetPage() {
                   </CardAction>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-sm text-muted-foreground truncate">Σ prix d&apos;achat — produits créés ce mois</div>
+                  <div className="text-sm text-muted-foreground truncate">Σ (prix achat × qté) — produits créés ce mois</div>
                 </CardContent>
               </Card>
             </div>

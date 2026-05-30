@@ -235,19 +235,19 @@ export const reportsService = {
          
       const [topProducts]: any = await pool.query(topProductsQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
-      const profitQuery = pool.isSQLite ? `SELECT 
-           COALESCE(SUM(s.final_amount), 0) as total_revenue,
-           COALESCE(SUM(si.quantity * p.purchase_price), 0) as total_purchase_cost,
-           COALESCE(SUM(s.final_amount) - SUM(si.quantity * p.purchase_price), 0) as monthly_profit
+      // Coût d'achat des produits vendus ce mois (via la jointure sale_items → products)
+      // NOTE : on N'utilise PAS SUM(s.final_amount) ici car il serait compté N fois
+      // (une fois par article de la vente) — bug classique de sur-comptage en JOIN.
+      // Le chiffre d'affaires est déjà calculé correctement dans totalRevenue (requête séparée).
+      const purchaseCostQuery = pool.isSQLite ? `SELECT
+           COALESCE(SUM(si.quantity * COALESCE(p.purchase_price, 0)), 0) as total_purchase_cost
          FROM sales s
          JOIN sale_items si ON si.sale_id = s.id
          JOIN products p ON p.id = si.product_id
          WHERE strftime('%m', s.created_at) = ?
          AND strftime('%Y', s.created_at) = ?
-         AND s.cancelled_at IS NULL` : `SELECT 
-           COALESCE(SUM(s.final_amount), 0) as total_revenue,
-           COALESCE(SUM(si.quantity * p.purchase_price), 0) as total_purchase_cost,
-           COALESCE(SUM(s.final_amount) - SUM(si.quantity * p.purchase_price), 0) as monthly_profit
+         AND s.cancelled_at IS NULL` : `SELECT
+           COALESCE(SUM(si.quantity * COALESCE(p.purchase_price, 0)), 0) as total_purchase_cost
          FROM sales s
          JOIN sale_items si ON si.sale_id = s.id
          JOIN products p ON p.id = si.product_id
@@ -255,17 +255,22 @@ export const reportsService = {
          AND YEAR(s.created_at) = ?
          AND s.cancelled_at IS NULL`;
 
-      const [profitResult]: any = await pool.query(profitQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
+      const [purchaseCostResult]: any = await pool.query(purchaseCostQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
+      const totalPurchaseCost = Number(purchaseCostResult[0]?.total_purchase_cost ?? 0);
+      // Bénéfice = CA réel - coût d'achat des produits vendus
+      const monthlyProfit = currentRev - totalPurchaseCost;
 
-      const newStockCostQuery = pool.isSQLite ? `SELECT COALESCE(SUM(purchase_price), 0) as new_stock_cost
+      // Coût total d'acquisition du stock enregistré ce mois :
+      // purchase_price × quantity pour chaque produit créé ce mois (hors supprimés)
+      const newStockCostQuery = pool.isSQLite ? `SELECT COALESCE(SUM(COALESCE(purchase_price, 0) * quantity), 0) as new_stock_cost
          FROM products
          WHERE strftime('%m', created_at) = ?
          AND strftime('%Y', created_at) = ?
-         AND status = 'ACTIVE'` : `SELECT COALESCE(SUM(purchase_price), 0) as new_stock_cost
+         AND status != 'ARCHIVED'` : `SELECT COALESCE(SUM(COALESCE(purchase_price, 0) * quantity), 0) as new_stock_cost
          FROM products
          WHERE MONTH(created_at) = ?
          AND YEAR(created_at) = ?
-         AND status = 'ACTIVE'`;
+         AND status != 'ARCHIVED'`;
 
       const [newStockResult]: any = await pool.query(newStockCostQuery, pool.isSQLite ? [monthStr, yearStr] : [month, year]);
 
@@ -276,7 +281,7 @@ export const reportsService = {
         weeklyEvolution: weeklyData,
         dailySalesGraph: dailySales,
         topProducts,
-        monthly_profit: profitResult[0].monthly_profit || 0,
+        monthly_profit: monthlyProfit,
         new_stock_cost: newStockResult[0].new_stock_cost || 0
       };
     } catch (error) {
