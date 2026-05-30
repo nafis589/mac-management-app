@@ -22,7 +22,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
     <div className="bg-white rounded-2xl border border-gray-100 group relative p-2 h-full flex flex-col">
       {/* Image */}
       <div 
-        className="h-[160px] w-full bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
+        className="h-[160px] w-full rounded-xl relative overflow-hidden cursor-pointer"
         onClick={() => router.push(`/produits/detail?id=${product.id}&viewOnly=true`)}
       >
         {photoUrl ? (
@@ -31,10 +31,10 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
             alt={product.name}
             loading="lazy"
             decoding="async" 
-            className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" 
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-300">
+          <div className="w-full h-full flex items-center justify-center bg-gray-100 text-gray-300">
             <Tag className="h-8 w-8" />
           </div>
         )}
