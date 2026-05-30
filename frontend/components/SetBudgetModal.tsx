@@ -44,11 +44,19 @@ export function SetBudgetModal({
   open,
   onOpenChange,
   onSuccess,
+  defaultMonth,
+  defaultYear,
   budgetExists = false,
 }: SetBudgetModalProps) {
-  const currentDate = new Date();
-  const [month] = useState(currentDate.getMonth() + 1);
-  const [year] = useState(currentDate.getFullYear());
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  // Mois/année sélectionné dans la page (peut être différent du mois courant)
+  const month = defaultMonth ?? currentMonth;
+  const year = defaultYear ?? currentYear;
+  const isCurrentMonth = month === currentMonth && year === currentYear;
+
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,6 +89,12 @@ export function SetBudgetModal({
     setErrors({});
     setLoading(true);
     try {
+      // Vérification frontend : uniquement le mois courant est modifiable
+      if (!isCurrentMonth) {
+        toast.error("Modification impossible : uniquement le mois en cours est modifiable");
+        setLoading(false);
+        return;
+      }
       const raw = localStorage.getItem("fc_user");
       const user = raw ? JSON.parse(raw) : {};
       await createBudget(parsed.data.month, parsed.data.year, parsed.data.amount, user.id);
@@ -108,15 +122,17 @@ export function SetBudgetModal({
           {/* Période — lecture seule */}
           <div className="space-y-1.5">
             <Label>Période</Label>
-            <div className="rounded-md border bg-muted/50 px-3 py-2">
+            <div className={`rounded-md border px-3 py-2 ${isCurrentMonth ? "bg-muted/50" : "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800"}`}>
               <p className="font-medium capitalize">
                 {new Date(year, month - 1).toLocaleString("fr-FR", {
                   month: "long",
                   year: "numeric",
                 })}
               </p>
-              <p className="text-xs text-muted-foreground">
-                Seul le mois en cours est modifiable
+              <p className={`text-xs ${isCurrentMonth ? "text-muted-foreground" : "text-orange-700 dark:text-orange-300 font-medium"}`}>
+                {isCurrentMonth
+                  ? "Seul le mois en cours est modifiable"
+                  : "⚠ Ce mois n'est pas le mois en cours: la modification sera refusée"}
               </p>
             </div>
           </div>
@@ -127,7 +143,7 @@ export function SetBudgetModal({
             <Input
               id="budget-amount"
               type="number"
-              placeholder="Ex : 500 000"
+              placeholder="Budget du mois en cours"
               value={amount}
               min={0}
               step={1000}
@@ -161,7 +177,7 @@ export function SetBudgetModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !amount}
+            disabled={loading || !amount || !isCurrentMonth}
             className="bg-fp hover:bg-fp/90 text-white"
           >
             {loading ? "Enregistrement..." : label}

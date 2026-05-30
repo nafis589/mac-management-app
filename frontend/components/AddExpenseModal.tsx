@@ -146,6 +146,16 @@ export function AddExpenseModal({
   };
 
   const handleSubmit = async () => {
+    // Vérification : la date doit être dans le mois en cours
+    if (date) {
+      const now = new Date();
+      const [y, m] = date.split("-").map(Number);
+      if (y !== now.getFullYear() || m !== (now.getMonth() + 1)) {
+        toast.error("Ajout impossible : les dépenses ne peuvent être enregistrées que pour le mois en cours");
+        return;
+      }
+    }
+
     const schema = makeSchema(isOverBudget);
     const parsed = schema.safeParse({
       date,
@@ -206,6 +216,14 @@ export function AddExpenseModal({
     }
   };
 
+  // Vérifie si la date sélectionnée est hors du mois courant
+  const isDateOutsideCurrentMonth = (() => {
+    if (!date) return false;
+    const now = new Date();
+    const [y, m] = date.split("-").map(Number);
+    return y !== now.getFullYear() || m !== (now.getMonth() + 1);
+  })();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -253,6 +271,11 @@ export function AddExpenseModal({
             </Popover>
             {errors.date && (
               <p className="text-xs text-destructive">{errors.date}</p>
+            )}
+            {isDateOutsideCurrentMonth && !errors.date && (
+              <p className="text-xs text-orange-600 dark:text-orange-400">
+                ⚠ Cette date n&apos;est pas dans le mois en cours — l&apos;enregistrement sera refusé
+              </p>
             )}
           </div>
 
@@ -312,7 +335,7 @@ export function AddExpenseModal({
                 </div>
               </div>
               <Input
-                placeholder="Ex : Fonds personnels, Prêt banque..."
+                placeholder="Fonds personnels, Prêt banque..."
                 value={customSource}
                 onChange={(e) => {
                   setCustomSource(e.target.value);
@@ -342,7 +365,7 @@ export function AddExpenseModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !amount}
+            disabled={loading || !amount || isDateOutsideCurrentMonth}
             className="bg-fp hover:bg-fp/90 text-white"
           >
             {loading

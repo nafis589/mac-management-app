@@ -466,8 +466,11 @@ export const deliveriesService = {
     try {
       const [rows]: any = await pool.query(`
         SELECT COUNT(*) as count FROM deliveries
-        WHERE status IN ('PENDING', 'IN_PROGRESS')
-        OR payment_status IN ('UNPAID', 'PARTIAL')
+        WHERE status != 'CANCELLED'
+        AND (
+          status IN ('PENDING', 'IN_PROGRESS')
+          OR payment_status IN ('UNPAID', 'PARTIAL')
+        )
       `);
       return rows[0]?.count ?? 0;
     } catch (error) {

@@ -34,7 +34,7 @@ interface NavMainProps {
 }
 
 const DELIVERIES_URL = "/livraisons";
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const POLL_INTERVAL_MS = 60 * 1000; // 60 secondes (fallback polling)
 
 const IsComingSoon = () => (
   <span className="ml-auto rounded-md bg-gray-200 px-2 py-1 text-xs dark:text-gray-800">Bientôt</span>
@@ -182,7 +182,15 @@ export function NavMain({ items }: NavMainProps) {
   useEffect(() => {
     checkPendingDeliveries();
     const interval = setInterval(checkPendingDeliveries, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
+
+    // Refresh immédiat sur custom event dispatché après create/update/pay/cancel
+    const handleDeliveriesUpdated = () => checkPendingDeliveries();
+    window.addEventListener("deliveries-updated", handleDeliveriesUpdated);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("deliveries-updated", handleDeliveriesUpdated);
+    };
   }, []);
 
   const isItemActive = (url: string, subItems?: NavMainItem["subItems"]) => {

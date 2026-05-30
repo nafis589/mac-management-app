@@ -134,6 +134,7 @@ export default function CaissePage() {
       handleNewSale()
       setShowDeliveryModal(false)
       if ((window as any).__posRefreshProducts) (window as any).__posRefreshProducts()
+      window.dispatchEvent(new CustomEvent("deliveries-updated"));
     } catch (error: any) {
       toast.error('Erreur création livraison : ' + error.message)
     }

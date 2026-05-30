@@ -638,6 +638,7 @@ export function LivraisonsClient({ initialDeliveries }: { initialDeliveries: Del
             if ((window as any).__refreshDeliveries) {
               (window as any).__refreshDeliveries();
             }
+            window.dispatchEvent(new CustomEvent("deliveries-updated"));
           }} 
         />
       )}

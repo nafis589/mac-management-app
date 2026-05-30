@@ -107,6 +107,7 @@ export function DeliveryDetailsView({
         toast.success('Paiement enregistré');
         setPaymentAmount("");
         onRefresh();
+        window.dispatchEvent(new CustomEvent("deliveries-updated"));
       } else {
         toast.error("Erreur lors de l'enregistrement du paiement");
       }
@@ -125,6 +126,7 @@ export function DeliveryDetailsView({
       if (res.success) {
         toast.success('Statut mis à jour');
         onRefresh();
+        window.dispatchEvent(new CustomEvent("deliveries-updated"));
       } else {
         toast.error("Erreur de mise à jour");
       }
@@ -143,6 +145,7 @@ export function DeliveryDetailsView({
       if (res.success) {
         toast.success('Livraison annulée');
         onRefresh();
+        window.dispatchEvent(new CustomEvent("deliveries-updated"));
       } else {
         toast.error("Erreur lors de l'annulation");
       }
