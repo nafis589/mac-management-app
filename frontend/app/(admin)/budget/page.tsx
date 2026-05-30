@@ -627,6 +627,9 @@ export default function BudgetPage() {
             <Card className="h-full rounded-none border-0 ring-0 xl:col-span-7">
               <CardHeader>
                 <CardTitle className="font-normal">Dépenses cumulées vs Budget</CardTitle>
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Cumul des dépenses jour par jour depuis le 1er du mois
+                </p>
                 <CardAction>
                   <ArrowUpRight className="size-4" />
                 </CardAction>
@@ -660,19 +663,24 @@ export default function BudgetPage() {
                       <XAxis
                         dataKey="day"
                         axisLine={false}
-                        height={30}
-                        interval={4}
+                        height={28}
+                        interval="preserveStartEnd"
                         tick={{ fontSize: 10 }}
                         tickLine={false}
-                        tickMargin={8}
+                        tickMargin={6}
+                        tickFormatter={(day) =>
+                          `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}`
+                        }
                       />
                       <YAxis hide />
 
                       <ChartTooltip
                         content={
                           <ChartTooltipContent
-                            className="w-52"
-                            labelFormatter={(v) => `Jour ${v}`}
+                            className="w-56"
+                            labelFormatter={(day) =>
+                              `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`
+                            }
                             formatter={(value, name, item) => (
                               <>
                                 <div

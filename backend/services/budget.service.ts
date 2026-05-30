@@ -254,10 +254,15 @@ export const budgetService = {
       `, [monthStr, yearStr]);
 
       const daysInMonth = new Date(year, month, 0).getDate();
+      const today = new Date();
+      const isCurrentMonth = (month === today.getMonth() + 1 && year === today.getFullYear());
+      // Pour le mois en cours on s'arrête à aujourd'hui, sinon on couvre tout le mois
+      const lastDay = isCurrentMonth ? Math.min(today.getDate(), daysInMonth) : daysInMonth;
+
       let cumul = 0;
       const data: { day: number; cumul: number; budget: number }[] = [];
 
-      for (let d = 1; d <= daysInMonth; d++) {
+      for (let d = 1; d <= lastDay; d++) {
         const dayStr = String(d).padStart(2, '0');
         const found = expenseRows?.find((e: any) => e.day === dayStr);
         cumul += found ? Number(found.daily_total) : 0;
