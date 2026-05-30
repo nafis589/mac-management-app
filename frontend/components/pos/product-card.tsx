@@ -22,7 +22,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
     <div className="bg-white rounded-2xl border border-gray-100 group relative p-2 h-full flex flex-col">
       {/* Image */}
       <div 
-        className="flex-1 w-full min-h-[120px] bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
+        className="h-[160px] w-full bg-gray-100/80 rounded-xl relative overflow-hidden flex items-center justify-center p-4 cursor-pointer"
         onClick={() => router.push(`/produits/detail?id=${product.id}&viewOnly=true`)}
       >
         {photoUrl ? (
