@@ -775,7 +775,51 @@ function registerHandlers(backend) {
   });
 
   // ═══════════════════════════════════════════
-  console.log('📡 IPC handlers enregistrés : 65 canaux');
+  // CUSTOMERS (4 handlers)
+  // ═══════════════════════════════════════════
+
+  ipcMain.handle('customers:search', async (_event, query) => {
+    try {
+      const data = await backend.deliveryCustomers.search(query);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] customers:search error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('customers:findOrCreate', async (_event, name, phone, address) => {
+    try {
+      const data = await backend.deliveryCustomers.findOrCreate(name, phone, address);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] customers:findOrCreate error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('customers:getAll', async (_event) => {
+    try {
+      const data = await backend.deliveryCustomers.getAll();
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] customers:getAll error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('customers:getById', async (_event, id) => {
+    try {
+      const data = await backend.deliveryCustomers.getById(id);
+      return { success: true, data };
+    } catch (error) {
+      console.error('[IPC] customers:getById error:', error.message);
+      return { success: false, error: error.message };
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  console.log('📡 IPC handlers enregistrés : 69 canaux');
 }
 
 module.exports = { registerHandlers };

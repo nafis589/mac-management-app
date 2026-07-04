@@ -105,6 +105,12 @@ const ALLOWED_CHANNELS = [
   'budget:updateExpense',
   'budget:deleteExpense',
   'budget:getDailyExpenses',
+
+  // Customers
+  'customers:search',
+  'customers:findOrCreate',
+  'customers:getAll',
+  'customers:getById',
 ];
 
 contextBridge.exposeInMainWorld('electron', {

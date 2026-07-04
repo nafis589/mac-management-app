@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
   Truck, User, Phone, MapPin, CalendarDays, Clock, FileText,
-  Banknote, AlertCircle, CheckCircle2, Loader2,
+  Banknote, AlertCircle, CheckCircle2, Loader2, Search, UserPlus,
 } from "lucide-react";
 
 import {
@@ -41,11 +41,18 @@ type DeliveryFormValues = z.infer<typeof deliverySchema>;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface Customer {
+  id: number;
+  name: string;
+  phone: string;
+  address?: string;
+}
+
 interface DeliveryModalProps {
   open: boolean;
   totalAmount: number;
   onClose: () => void;
-  onConfirm: (data: Omit<DeliveryFormValues, "amount_paid">, amountPaid: number) => void;
+  onConfirm: (data: Omit<DeliveryFormValues, "amount_paid"> & { customer_id?: number }, amountPaid: number) => void;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -70,7 +77,12 @@ export function DeliveryModal({
   onConfirm,
 }: DeliveryModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [step, setStep] = React.useState(1);
+  const [step, setStep] = React.useState(0);
+
+  // ── State Step 0 : Sélection client ──────────────────────────────────────
+  const [customers, setCustomers] = React.useState<Customer[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedCustomer, setSelectedCustomer] = React.useState<Customer | null>(null);
 
   const {
     register,
@@ -78,7 +90,9 @@ export function DeliveryModal({
     control,
     watch,
     reset,
+    setValue,
     trigger,
+    setError,
     formState: { errors },
   } = useForm<DeliveryFormValues>({
     resolver: zodResolver(deliverySchema) as any,
@@ -93,6 +107,19 @@ export function DeliveryModal({
     },
   });
 
+  // Charger clients au mount
+  React.useEffect(() => {
+    if (open) {
+      const win = window as any;
+      if (win.electron?.invoke) {
+        win.electron.invoke("customers:getAll").then((res: any) => {
+          const list = res?.data ?? res ?? [];
+          setCustomers(Array.isArray(list) ? list : []);
+        }).catch(() => setCustomers([]));
+      }
+    }
+  }, [open]);
+
   // Réinitialise le formulaire à chaque ouverture
   React.useEffect(() => {
     if (open) {
@@ -106,9 +133,22 @@ export function DeliveryModal({
         amount_paid: 0,
       });
       setIsSubmitting(false);
-      setStep(1);
+      setStep(0);
+      setSearchQuery("");
+      setSelectedCustomer(null);
     }
   }, [open, reset]);
+
+  // Filtrer clients localement
+  const filteredCustomers = customers.filter((c) =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.phone.includes(searchQuery)
+  );
+
+  // Quand un client est sélectionné, pré-remplir les champs
+  const handleSelectCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+  };
 
   // Lecture en temps réel pour les calculs de paiement
   const amountPaidRaw = watch("amount_paid");
@@ -117,15 +157,69 @@ export function DeliveryModal({
   const changeAmount = Math.max(0, amountPaid - totalAmount);
   const isFullyPaid = amountPaid >= totalAmount && totalAmount > 0;
 
+  // Passer de Step 0 → Step 1 avec client sélectionné
+  const handleNextFromStep0 = () => {
+    if (!selectedCustomer) return;
+    // Pré-remplir les champs depuis le client sélectionné
+    setValue("customer_name", selectedCustomer.name);
+    setValue("customer_phone", selectedCustomer.phone);
+    setValue("delivery_address", selectedCustomer.address || "");
+    setStep(1);
+  };
+
+  // Passer en mode "Nouveau client" (Step 1 sans client)
+  const handleNewClient = () => {
+    setSelectedCustomer(null);
+    reset({
+      customer_name: "",
+      customer_phone: "",
+      delivery_address: "",
+      delivery_date: TODAY,
+      delivery_time: "",
+      notes: "",
+      amount_paid: 0,
+    });
+    setStep(1);
+  };
+
   const onSubmit = async (data: DeliveryFormValues) => {
     setIsSubmitting(true);
     try {
       const { amount_paid, ...deliveryData } = data;
-      await onConfirm(deliveryData, amount_paid);
+      const payload: any = { ...deliveryData };
+
+      // Si client existant sélectionné → on a déjà l'id
+      if (selectedCustomer?.id) {
+        payload.customer_id = selectedCustomer.id;
+      } else {
+        // Nouveau client → le créer dans la table delivery_customers
+        const win = window as any;
+        if (win.electron?.invoke) {
+          try {
+            const res = await win.electron.invoke(
+              'customers:findOrCreate',
+              data.customer_name,
+              data.customer_phone,
+              data.delivery_address
+            );
+            if (res?.success && res?.data?.id) {
+              payload.customer_id = res.data.id;
+            }
+          } catch (err) {
+            console.error('Erreur création client:', err);
+          }
+        }
+      }
+
+      await onConfirm(payload, amount_paid);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Initiales avatar
+  const getInitials = (name: string) =>
+    name.trim().charAt(0).toUpperCase();
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -144,79 +238,180 @@ export function DeliveryModal({
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="px-6 py-5 space-y-6">
 
-            {step === 1 && (
+            {/* ════════════════════════════════════════════════════════════
+                STEP 0 : Sélection client
+            ════════════════════════════════════════════════════════════ */}
+            {step === 0 && (
               <>
-                {/* ── Section Client ──────────────────────────────────────────── */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    Informations client
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Nom */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-gray-600">
-                        Nom complet <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <input
-                          {...register("customer_name")}
-                          placeholder="Nom Complet"
-                          className={INPUT_CLASS}
-                        />
-                      </div>
-                      {errors.customer_name && (
-                        <p className="text-red-500 text-xs flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.customer_name.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Téléphone */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium text-gray-600">
-                        Téléphone <span className="text-red-500">*</span>
-                      </Label>
-                      <div className="relative">
-                        <input
-                          {...register("customer_phone")}
-                          placeholder="Numéro de téléphone"
-                          className={INPUT_CLASS}
-                        />
-                      </div>
-                      {errors.customer_phone && (
-                        <p className="text-red-500 text-xs flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.customer_phone.message}
-                        </p>
-                      )}
-                    </div>
+                {/* Barre de recherche + bouton Nouveau client */}
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Rechercher un client..."
+                      className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#dc4818] focus:border-[#dc4818] bg-white placeholder-gray-400 text-sm"
+                    />
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleNewClient}
+                    className="shrink-0 border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center gap-1.5 text-sm"
+                  >
 
-                  {/* Adresse */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-gray-600">
-                      Adresse de livraison <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <textarea
-                        {...register("delivery_address")}
-                        placeholder="Adresse de livraison"
-                        rows={2}
-                        className={`${INPUT_CLASS} resize-none`}
-                      />
-                    </div>
-                    {errors.delivery_address && (
-                      <p className="text-red-500 text-xs flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        {errors.delivery_address.message}
-                      </p>
-                    )}
-                  </div>
+                    Nouveau client
+                  </Button>
                 </div>
 
-                {/* ── Section Planification ───────────────────────────────────── */}
+                {/* Liste des clients */}
+                <div
+                  className="overflow-y-auto mt-4 [&::-webkit-scrollbar]:hidden"
+                  style={{ maxHeight: "300px", scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {filteredCustomers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+
+                      <p className="text-sm">Aucun client trouvé</p>
+                    </div>
+                  ) : (
+                    filteredCustomers.map((customer) => {
+                      const isSelected = selectedCustomer?.id === customer.id;
+                      return (
+                        <button
+                          key={customer.id}
+                          type="button"
+                          onClick={() => handleSelectCustomer(customer)}
+                          className={cn(
+                            "w-full text-left flex items-center gap-4 px-2 py-3 transition-colors rounded-lg",
+                            isSelected ? "bg-gray-50" : "hover:bg-gray-50"
+                          )}
+                        >
+                          {/* Avatar */}
+                          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                            <User className="h-5 w-5 text-gray-400" />
+                          </div>
+                          
+                          {/* Infos */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[15px] font-medium text-gray-900 truncate">
+                              {customer.name}
+                            </p>
+                            <p className="text-[13px] text-gray-500 truncate">
+                              {customer.phone}
+                            </p>
+                          </div>
+                          
+                          {/* Checkbox */}
+                          <div className="shrink-0 pr-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              readOnly
+                              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900 accent-gray-900"
+                            />
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════
+                STEP 1 : Informations livraison
+            ════════════════════════════════════════════════════════════ */}
+            {step === 1 && (
+              <>
+                {/* CAS B : client existant sélectionné → header lecture seule */}
+                {selectedCustomer && (
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-[15px] font-medium text-gray-900">{selectedCustomer.name}</p>
+                      <p className="text-[13px] text-gray-500">{selectedCustomer.phone}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* CAS A : Nouveau client → section Informations client */}
+                {!selectedCustomer && (
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      Informations client
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Nom */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-gray-600">
+                          Nom complet <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <input
+                            {...register("customer_name")}
+                            placeholder="Nom Complet"
+                            className={INPUT_CLASS}
+                          />
+                        </div>
+                        {errors.customer_name && (
+                          <p className="text-red-500 text-xs flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {errors.customer_name.message}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Téléphone */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-gray-600">
+                          Téléphone <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <input
+                            {...register("customer_phone")}
+                            placeholder="Numéro de téléphone"
+                            className={INPUT_CLASS}
+                          />
+                        </div>
+                        {errors.customer_phone && (
+                          <p className="text-red-500 text-xs flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {errors.customer_phone.message}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Adresse */}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-gray-600">
+                        Adresse de livraison <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <textarea
+                          {...register("delivery_address")}
+                          placeholder="Adresse de livraison"
+                          rows={2}
+                          className={`${INPUT_CLASS} resize-none`}
+                        />
+                      </div>
+                      {errors.delivery_address && (
+                        <p className="text-red-500 text-xs flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {errors.delivery_address.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Section Planification ─────────────────────────────── */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                     Planification
@@ -231,7 +426,7 @@ export function DeliveryModal({
                       <Controller
                         name="delivery_date"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }: { field: any }) => (
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
@@ -281,7 +476,7 @@ export function DeliveryModal({
                       <Controller
                         name="delivery_time"
                         control={control}
-                        render={({ field }) => (
+                        render={({ field }: { field: any }) => (
                           <Select
                             value={field.value || ""}
                             onValueChange={field.onChange}
@@ -322,18 +517,21 @@ export function DeliveryModal({
               </>
             )}
 
+            {/* ════════════════════════════════════════════════════════════
+                STEP 2 : Paiement (INCHANGÉ)
+            ════════════════════════════════════════════════════════════ */}
             {step === 2 && (
               <>
                 {/* ── Section Paiement ────────────────────────────────────────── */}
-                <div className="space-y-4 bg-gray-50 border border-gray-200 rounded-xl p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2 hidden">
                     Paiement
                   </h3>
 
                   {/* Récap total */}
-                  <div className="flex items-center justify-between py-2 px-3 bg-white border border-gray-200 rounded-lg">
-                    <span className="text-sm text-gray-600">Total commande</span>
-                    <span className="text-base font-bold text-gray-900">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[15px] font-medium text-gray-900">Total commande</span>
+                    <span className="text-[15px] text-gray-900">
                       {totalAmount.toLocaleString("fr-FR")} FCFA
                     </span>
                   </div>
@@ -355,42 +553,36 @@ export function DeliveryModal({
                         FCFA
                       </span>
                     </div>
-                    {errors.amount_paid && (
+                    {errors.amount_paid ? (
                       <p className="text-red-500 text-xs flex items-center gap-1">
                         <AlertCircle className="h-3 w-3" />
                         {errors.amount_paid.message}
                       </p>
-                    )}
-                  </div>
-
-                  {/* Alerte reste à payer */}
-                  {amountDue > 0 && amountPaid >= 0 && (
-                    <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 rounded-lg p-3">
-                      <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-amber-600">
-                          Reste à payer : {amountDue.toLocaleString("fr-FR")} FCFA
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Badge payé intégralement */}
-                  {isFullyPaid && (
-                    <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-100 rounded-lg p-3">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-emerald-800">
-                          Commande payée intégralement ✓
-                        </p>
-                        {changeAmount > 0 && (
-                          <p className="text-xs font-bold text-emerald-700 mt-0.5">
-                            Monnaie à rendre : {changeAmount.toLocaleString("fr-FR")} FCFA
+                    ) : (
+                      <>
+                        {/* Alerte reste à payer */}
+                        {amountDue > 0 && amountPaid >= 0 && (
+                          <p className="text-xs text-amber-600">
+                            reste à payer : {amountDue.toLocaleString("fr-FR")} fcfa
                           </p>
                         )}
-                      </div>
-                    </div>
-                  )}
+
+                        {/* Badge payé intégralement */}
+                        {isFullyPaid && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-emerald-600">
+                              commande payée intégralement
+                            </p>
+                            {changeAmount > 0 && (
+                              <p className="text-xs text-emerald-600">
+                                monnaie à rendre : {changeAmount.toLocaleString("fr-FR")} fcfa
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -398,7 +590,9 @@ export function DeliveryModal({
 
           {/* ── Footer ────────────────────────────────────────────────────── */}
           <DialogFooter className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex gap-2">
-            {step === 1 ? (
+
+            {/* STEP 0 */}
+            {step === 0 && (
               <>
                 <Button
                   type="button"
@@ -410,9 +604,51 @@ export function DeliveryModal({
                 </Button>
                 <Button
                   type="button"
+                  disabled={!selectedCustomer}
+                  onClick={handleNextFromStep0}
+                  className="flex-1 h-10 px-6 rounded-lg text-white font-semibold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: "#dc4818" }}
+                >
+                  Suivant
+                </Button>
+              </>
+            )}
+
+            {/* STEP 1 */}
+            {step === 1 && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep(0)}
+                  className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Retour
+                </Button>
+                <Button
+                  type="button"
                   onClick={async () => {
-                    const valid = await trigger(["customer_name", "customer_phone", "delivery_address", "delivery_date"]);
-                    if (valid) setStep(2);
+                    // Si nouveau client : valider tous les champs client + date
+                    if (!selectedCustomer) {
+                      const valid = await trigger(["customer_name", "customer_phone", "delivery_address", "delivery_date"]);
+                      if (valid) {
+                        const formPhone = watch("customer_phone");
+                        // Vérifier localement si ce numéro existe déjà dans la liste
+                        const phoneExists = customers.some(c => c.phone === formPhone);
+                        if (phoneExists) {
+                          setError("customer_phone", {
+                            type: "manual",
+                            message: "Ce numéro de téléphone existe déjà."
+                          });
+                          return;
+                        }
+                        setStep(2);
+                      }
+                    } else {
+                      // Client existant : valider seulement la date
+                      const valid = await trigger(["delivery_date"]);
+                      if (valid) setStep(2);
+                    }
                   }}
                   className="flex-1 h-10 px-6 rounded-lg text-white font-semibold text-sm transition-all active:scale-[0.98]"
                   style={{ background: "#dc4818" }}
@@ -420,7 +656,10 @@ export function DeliveryModal({
                   Suivant
                 </Button>
               </>
-            ) : (
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
               <>
                 <Button
                   type="button"

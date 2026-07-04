@@ -21,6 +21,7 @@ import { categoriesService } from './services/categories.service.js';
 import { brandsService } from './services/brands.service.js';
 import { deliveriesService } from './services/deliveries.service.js';
 import { budgetService } from './services/budget.service.js';
+import { deliveryCustomersService } from './services/delivery-customers.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -204,6 +205,31 @@ async function ensureSQLiteSchemaAndSeedAdmin() {
     // Column already exists - ignore
   }
 
+  // Add delivery_customers table
+  try {
+    (pool as any).exec(`
+      CREATE TABLE IF NOT EXISTS delivery_customers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT UNIQUE NOT NULL,
+        address TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_customers_phone ON delivery_customers(phone);
+    `);
+    logger.info('delivery_customers table ensured');
+  } catch (e: any) {
+    logger.warn('delivery_customers table migration error:', e.message);
+  }
+
+  // Add customer_id column to deliveries
+  try {
+    (pool as any).exec(`ALTER TABLE deliveries ADD COLUMN customer_id INTEGER REFERENCES delivery_customers(id)`);
+    logger.info('Added customer_id column to deliveries');
+  } catch (e: any) {
+    // Column already exists - ignore
+  }
+
   // 2) Seed default admin if missing
   const [existing]: any = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', ['admin']);
   if (!existing || existing.length === 0) {
@@ -246,6 +272,7 @@ export {
   categoriesService as categories,
   brandsService as brands,
   deliveriesService as deliveries,
+  deliveryCustomersService as deliveryCustomers,
 };
 
 export default {
@@ -260,4 +287,5 @@ export default {
   brands: brandsService,
   deliveries: deliveriesService,
   budget: budgetService,
+  deliveryCustomers: deliveryCustomersService,
 };
