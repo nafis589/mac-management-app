@@ -177,7 +177,7 @@ export const deliveriesService = {
 
   async getAll(filters: any = {}) {
     try {
-      const { page = 1, limit = 50, search, status, payment_status, date_start, date_end } = filters;
+      const { page = 1, limit = 50, search, status, payment_status, date_start, date_end, customer_id } = filters;
       const offset = (page - 1) * limit;
 
       let query = `
@@ -205,6 +205,11 @@ export const deliveriesService = {
       if (date_end) {
         query += ` AND d.delivery_date <= ?`;
         params.push(date_end);
+      }
+
+      if (customer_id) {
+        query += ` AND d.customer_id = ?`;
+        params.push(customer_id);
       }
 
       if (search) {
