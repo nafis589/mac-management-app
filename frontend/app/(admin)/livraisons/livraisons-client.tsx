@@ -199,22 +199,22 @@ export function LivraisonsClient({
   if (view === "delivery-detail") {
     return (
       <>
-        <TopbarBreadcrumb 
-          view={view} 
-          customer={selectedCustomer} 
-          onBack={() => setView(selectedCustomer ? "client-space" : "customers")} 
+        <TopbarBreadcrumb
+          view={view}
+          customer={selectedCustomer}
+          onBack={() => setView(selectedCustomer ? "client-space" : "customers")}
         />
         <DeliveryDetailsView
-        open={true}
-        delivery={deliveryDetails}
-        onClose={() => setView(selectedCustomer ? "client-space" : "customers")}
-        onRefresh={() => {
-          setView(selectedCustomer ? "client-space" : "customers")
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          if ((window as any).__refreshDeliveries) (window as any).__refreshDeliveries()
-          window.dispatchEvent(new CustomEvent("deliveries-updated"))
-        }}
-      />
+          open={true}
+          delivery={deliveryDetails}
+          onClose={() => setView(selectedCustomer ? "client-space" : "customers")}
+          onRefresh={() => {
+            setView(selectedCustomer ? "client-space" : "customers")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            if ((window as any).__refreshDeliveries) (window as any).__refreshDeliveries()
+            window.dispatchEvent(new CustomEvent("deliveries-updated"))
+          }}
+        />
       </>
     )
   }
@@ -223,10 +223,10 @@ export function LivraisonsClient({
   if (view === "client-space" && selectedCustomer) {
     return (
       <>
-        <TopbarBreadcrumb 
-          view={view} 
-          customer={selectedCustomer} 
-          onBack={() => { setView("customers"); setSelectedCustomer(null) }} 
+        <TopbarBreadcrumb
+          view={view}
+          customer={selectedCustomer}
+          onBack={() => { setView("customers"); setSelectedCustomer(null) }}
         />
         <ClientSpaceView
           customer={selectedCustomer}
@@ -242,78 +242,78 @@ export function LivraisonsClient({
   // Default: Customer grid view
   return (
     <>
-      <TopbarBreadcrumb 
-        view={view} 
-        customer={null} 
-        onBack={() => {}} 
+      <TopbarBreadcrumb
+        view={view}
+        customer={null}
+        onBack={() => { }}
       />
       <div className="@container/main flex flex-col gap-4 md:gap-6 w-full min-w-0">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Livraisons</h1>
-          <p className="text-muted-foreground text-sm">
-            Gérez vos livraisons, suivez l&apos;état d&apos;expédition et les paiements restants.
-          </p>
-        </div>
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="h-9 pl-8"
-            placeholder="Rechercher un client..."
-            value={customerSearch}
-            onChange={e => setCustomerSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* ── Stats Cards (globales) ──────────────────────────────────────── */}
-      <StatsCards stats={globalStats} />
-
-      {/* ── Grille Clients ─────────────────────────────────────────────── */}
-      <div className="mt-2">
-        <h2 className="text-2xl font-bold tracking-tight mb-6">Mes clients</h2>
-        {filteredCustomers.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <p className="text-sm">
-              {customerSearch ? "Aucun client trouvé pour cette recherche." : "Aucun client enregistré"}
+        {/* ── Header ─────────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Livraisons</h1>
+            <p className="text-muted-foreground text-sm">
+              Gérez vos livraisons, suivez l&apos;état d&apos;expédition et les paiements restants.
             </p>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-6">
-            {filteredCustomers.map(customer => {
-              const pendingCount = customerPendingCounts[customer.id] || 0;
-              return (
-                <button
-                  key={customer.id}
-                  type="button"
-                  onClick={() => handleOpenClient(customer)}
-                  className="flex flex-col items-center gap-3 group cursor-pointer focus:outline-none"
-                >
-                  <div className="relative w-28 h-24 sm:w-32 sm:h-28 transition-transform duration-150 group-hover:scale-105 group-hover:brightness-95">
-                    <Image src="/folder.png" alt="dossier" fill className="object-contain" draggable={false} />
-                    {pendingCount > 0 && (
-                      <div className="absolute top-1 sm:top-2 right-1 sm:right-2 flex h-5 sm:h-6 min-w-[20px] sm:min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] sm:text-xs font-semibold text-white tabular-nums border-[1.5px] border-white shadow-sm z-10">
-                        {pendingCount > 99 ? "99+" : pendingCount}
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center max-w-[130px]">
-                    <p className="text-[15px] font-medium text-gray-900 leading-tight truncate w-full" title={customer.name}>
-                      {customer.name}
-                    </p>
-                    <p className="text-[13px] text-gray-500 truncate w-full" title={customer.phone}>
-                      {customer.phone}
-                    </p>
-                  </div>
-                </button>
-              )
-            })}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="h-9 pl-8"
+              placeholder="Rechercher un client..."
+              value={customerSearch}
+              onChange={e => setCustomerSearch(e.target.value)}
+            />
           </div>
-        )}
+        </div>
+
+        {/* ── Stats Cards (globales) ──────────────────────────────────────── 
+      <StatsCards stats={globalStats} />
+      */}
+        {/* ── Grille Clients ─────────────────────────────────────────────── */}
+        <div className="mt-2">
+          {/*<h2 className="text-2xl font-bold tracking-tight mb-6">Mes clients</h2>*/}
+          {filteredCustomers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <p className="text-sm">
+                {customerSearch ? "Aucun client trouvé pour cette recherche." : "Aucun client enregistré"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-6">
+              {filteredCustomers.map(customer => {
+                const pendingCount = customerPendingCounts[customer.id] || 0;
+                return (
+                  <button
+                    key={customer.id}
+                    type="button"
+                    onClick={() => handleOpenClient(customer)}
+                    className="flex flex-col items-center gap-3 group cursor-pointer focus:outline-none"
+                  >
+                    <div className="relative w-28 h-24 sm:w-32 sm:h-28 transition-transform duration-150 group-hover:scale-105 group-hover:brightness-95">
+                      <Image src="/folder.png" alt="dossier" fill className="object-contain" draggable={false} />
+                      {pendingCount > 0 && (
+                        <div className="absolute top-1 sm:top-2 right-1 sm:right-2 flex h-5 sm:h-6 min-w-[20px] sm:min-w-[24px] items-center justify-center rounded-full bg-red-500 px-1 text-[11px] sm:text-xs font-semibold text-white tabular-nums border-[1.5px] border-white shadow-sm z-10">
+                          {pendingCount > 99 ? "99+" : pendingCount}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-center max-w-[130px]">
+                      <p className="text-[15px] font-medium text-gray-900 leading-tight truncate w-full" title={customer.name}>
+                        {customer.name}
+                      </p>
+                      <p className="text-[13px] text-gray-500 truncate w-full" title={customer.phone}>
+                        {customer.phone}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </>
   )
 }
@@ -396,7 +396,7 @@ function ClientSpaceView({
     {
       accessorKey: "reference",
       header: "Réf",
-      cell: ({ row }) => <span className="font-medium text-primary">{row.original.reference}</span>,
+      cell: ({ row }) => <span className="font-medium text-black">{row.original.reference}</span>,
     },
     {
       accessorKey: "delivery_date",
@@ -499,10 +499,12 @@ function ClientSpaceView({
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6 w-full min-w-0 pt-2">
 
-      {/* Header client */}
-      <div className="flex flex-col gap-0.5">
-        <h1 className="text-2xl font-bold tracking-tight">{customer.name}</h1>
-        <p className="text-muted-foreground text-sm">{customer.phone}</p>
+      {/* Header client / Livraisons */}
+      <div className="flex flex-col gap-0.5 mb-2">
+        <h1 className="text-2xl font-bold tracking-tight">Livraisons</h1>
+        <p className="text-muted-foreground text-sm">
+          Gérez vos livraisons, suivez l&apos;état d&apos;expédition et les paiements restants.
+        </p>
       </div>
 
       {/* Stats cards (filtrées) */}
@@ -652,23 +654,23 @@ function ClientSpaceView({
 /* ─────────────────────────────────────────────────────────────────────────────
    Topbar Breadcrumb (Portal)
 ───────────────────────────────────────────────────────────────────────────── */
-function TopbarBreadcrumb({ 
-  view, 
-  customer, 
-  onBack 
-}: { 
+function TopbarBreadcrumb({
+  view,
+  customer,
+  onBack
+}: {
   view: "customers" | "client-space" | "delivery-detail"
   customer: Customer | null
-  onBack: () => void 
+  onBack: () => void
 }) {
   const [container, setContainer] = React.useState<HTMLElement | null>(null)
-  
+
   React.useEffect(() => {
     setContainer(document.getElementById("topbar-breadcrumb-container"))
   }, [])
-  
+
   if (!container) return null
-  
+
   return createPortal(
     <div className="flex items-center text-sm ml-2">
       <div className="flex items-center gap-4 mr-6 text-muted-foreground">
