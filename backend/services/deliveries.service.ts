@@ -49,7 +49,7 @@ export const deliveriesService = {
       }
 
       const {
-        customer_name, customer_phone, delivery_address, delivery_date, delivery_time, notes
+        customer_id, customer_name, customer_phone, delivery_address, delivery_date, delivery_time, notes
       } = deliveryData;
 
       // 1. Vérifier et réserver le stock pour chaque article
@@ -89,12 +89,12 @@ export const deliveriesService = {
       // 3. Insérer la livraison SANS sale_id
       const [result]: any = await connection.query(
         `INSERT INTO deliveries (
-          reference, sale_id, customer_name, customer_phone, delivery_address, 
+          reference, sale_id, customer_id, customer_name, customer_phone, delivery_address, 
           delivery_date, delivery_time, total_amount, amount_paid, payment_status, 
           notes, pending_sale_data, created_by
-        ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
-          reference, customer_name, customer_phone, delivery_address,
+          reference, customer_id || null, customer_name, customer_phone, delivery_address,
           delivery_date, delivery_time, totalAmount, amountPaid, paymentStatus,
           notes || null, pendingSaleData, userId
         ]

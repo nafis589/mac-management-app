@@ -5,32 +5,42 @@ import { LivraisonsClient } from "./livraisons-client";
 
 export default function LivraisonsPage() {
   const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDeliveries = async () => {
+    const fetchAll = async () => {
       try {
         if ((window as any).electron) {
-          const res = await (window as any).electron.invoke("deliveries:getAll", { limit: 10000 });
-          if (res?.success && res?.data?.deliveries) {
-            setDeliveries(res.data.deliveries);
+          const [deliveriesRes, customersRes] = await Promise.all([
+            (window as any).electron.invoke("deliveries:getAll", { limit: 10000 }),
+            (window as any).electron.invoke("customers:getAll"),
+          ]);
+
+          if (deliveriesRes?.success && deliveriesRes?.data?.deliveries) {
+            setDeliveries(deliveriesRes.data.deliveries);
           } else {
-            setDeliveries(res?.deliveries || []); // Fallback
+            setDeliveries(deliveriesRes?.deliveries || []);
           }
+
+          const customerList = customersRes?.data ?? customersRes ?? [];
+          setCustomers(Array.isArray(customerList) ? customerList : []);
         }
       } catch (err) {
-        console.error("Failed to fetch deliveries:", err);
+        console.error("Failed to fetch data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchDeliveries();
+    fetchAll();
 
-    // Attach to window to allow auto-refresh after actions
-    (window as any).__refreshDeliveries = fetchDeliveries;
-    
+    (window as any).__refreshDeliveries = fetchAll;
+    window.addEventListener("deliveries-updated", fetchAll);
+    window.addEventListener("focus", fetchAll);
     return () => {
       delete (window as any).__refreshDeliveries;
+      window.removeEventListener("deliveries-updated", fetchAll);
+      window.removeEventListener("focus", fetchAll);
     };
   }, []);
 
@@ -42,5 +52,5 @@ export default function LivraisonsPage() {
     );
   }
 
-  return <LivraisonsClient initialDeliveries={deliveries} />;
+  return <LivraisonsClient initialDeliveries={deliveries} initialCustomers={customers} />;
 }
